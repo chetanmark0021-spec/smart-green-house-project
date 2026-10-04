@@ -2,9 +2,8 @@
   Smart Greenhouse - ESP32-S3 firmware
   Libraries (Arduino Library Manager): DHT sensor library, ArduinoJson
 
-  Change WiFi credentials, SERVER_URL, pins and soil calibration before upload.
-  For a local laptop dashboard, SERVER_URL must use the laptop's LAN IPv4 address,
-  not 127.0.0.1. Give the laptop a stable DHCP reservation if possible.
+  Change Wi-Fi credentials, Supabase settings, pins and soil calibration before
+  upload. This final sketch sends directly to Supabase over HTTPS.
 */
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -14,12 +13,12 @@
 // ---------- Network ----------
 const char* WIFI_SSID = "YOUR_FIXED_WIFI_NAME";
 const char* WIFI_PASSWORD = "YOUR_FIXED_WIFI_PASSWORD";
-// Local example: http://192.168.1.4:5000
-// Cloud example: https://YOUR_PROJECT_REF.supabase.co/functions/v1/greenhouse-ingest
-const char* SERVER_URL = "https://wclsupskijbczcwocmze.supabase.co/functions/v1/greenhouse-ingest";
-// Leave empty while testing. Later set the same value as DEVICE_INGEST_KEY in
-// Supabase Edge Function Secrets; never expose it in the Vercel frontend.
-const char* DEVICE_INGEST_KEY = "";
+// Supabase direct REST test mode. These are deliberately separate so that the
+// project endpoint and the public browser/device key are easy to replace.
+// The publishable key is public; never put a Supabase secret/service-role key
+// or Wi-Fi password in a public repository.
+const char* SUPABASE_URL = "https://wclsupskijbczcwocmze.supabase.co";
+const char* SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TQFVK7KytP0H-x_3yylRjQ_8wMcWO3u";
 const char* DEVICE_ID = "greenhouse-esp32-s3-01";
 
 // ---------- Wiring: change to match your actual ESP32-S3 board ----------
@@ -87,6 +86,12 @@ void setPump(bool on) { pumpOn = on; setRelay(PUMP_RELAY_PIN, on); }
 void setFan(bool on) { fanOn = on; setRelay(FAN_RELAY_PIN, on); }
 void setGrowLight(bool on) { growLightOn = on; setRelay(GROW_LIGHT_RELAY_PIN, on); }
 
+void addSupabaseHeaders(HTTPClient& http, bool includeJsonContentType = false) {
+  if (includeJsonContentType) http.addHeader("Content-Type", "application/json");
+  http.addHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
+  http.addHeader("Authorization", String("Bearer ") + SUPABASE_PUBLISHABLE_KEY);
+}
+
 void connectWiFi() {
   if (WiFi.status() == WL_CONNECTED) return;
   WiFi.mode(WIFI_STA);
@@ -146,33 +151,35 @@ void applyAutomation(float temperature, float soil, float light) {
 void fetchConfig() {
   if (WiFi.status() != WL_CONNECTED) return;
   HTTPClient http;
-  http.begin(String(SERVER_URL) + "?action=config&deviceId=" + DEVICE_ID);
-  if (strlen(DEVICE_INGEST_KEY) > 0) http.addHeader("X-Device-Key", DEVICE_INGEST_KEY);
+  const String configUrl = String(SUPABASE_URL) +
+    "/rest/v1/greenhouse_devices?device_id=eq." + DEVICE_ID +
+    "&select=temperature_on,temperature_off,soil_moisture_on,irrigation_burst_seconds,irrigation_soak_seconds,fan_mode,pump_mode,grow_light_mode,manual_fan,manual_pump,manual_grow_light";
+  http.begin(configUrl);
+  addSupabaseHeaders(http);
   int status = http.GET();
   if (status == HTTP_CODE_OK) {
     StaticJsonDocument<768> doc;
-    if (deserializeJson(doc, http.getString()) == DeserializationError::Ok) {
-      float cloudTemperatureOn = doc["temperatureOn"] | config.temperatureOn;
-      float cloudTemperatureOff = doc["temperatureOff"] | config.temperatureOff;
+    if (deserializeJson(doc, http.getString()) == DeserializationError::Ok && doc.size() > 0) {
+      JsonObject cloud = doc[0];
+      float cloudTemperatureOn = cloud["temperature_on"] | config.temperatureOn;
+      float cloudTemperatureOff = cloud["temperature_off"] | config.temperatureOff;
       // Ignore a malformed remote range and retain the last safe range.
       if (validFanBand(cloudTemperatureOff, cloudTemperatureOn)) {
         config.temperatureOn = cloudTemperatureOn;
         config.temperatureOff = cloudTemperatureOff;
       }
-      config.soilMoistureOn = doc["soilMoistureOn"] | config.soilMoistureOn;
-      config.irrigationBurstSeconds = doc["irrigationBurstSeconds"] | config.irrigationBurstSeconds;
-      config.irrigationSoakSeconds = doc["irrigationSoakSeconds"] | config.irrigationSoakSeconds;
-      config.lightStartHour = doc["lightStartHour"] | config.lightStartHour;
-      config.lightEndHour = doc["lightEndHour"] | config.lightEndHour;
-      JsonObject modes = doc["modes"];
-      config.pumpAuto = String((const char*)modes["pump"]) != "manual";
-      config.fanAuto = String((const char*)modes["fan"]) != "manual";
-      config.growLightAuto = String((const char*)modes["growLight"]) != "manual";
-      JsonObject manual = doc["manual"];
-      config.manualPump = manual["pump"] | false;
-      config.manualFan = manual["fan"] | false;
-      config.manualGrowLight = manual["growLight"] | false;
+      config.soilMoistureOn = cloud["soil_moisture_on"] | config.soilMoistureOn;
+      config.irrigationBurstSeconds = cloud["irrigation_burst_seconds"] | config.irrigationBurstSeconds;
+      config.irrigationSoakSeconds = cloud["irrigation_soak_seconds"] | config.irrigationSoakSeconds;
+      config.pumpAuto = String(cloud["pump_mode"] | "auto") != "manual";
+      config.fanAuto = String(cloud["fan_mode"] | "auto") != "manual";
+      config.growLightAuto = String(cloud["grow_light_mode"] | "auto") != "manual";
+      config.manualPump = cloud["manual_pump"] | false;
+      config.manualFan = cloud["manual_fan"] | false;
+      config.manualGrowLight = cloud["manual_grow_light"] | false;
     }
+  } else {
+    Serial.printf("Configuration status: %d\n", status);
   }
   http.end();
 }
@@ -180,23 +187,24 @@ void fetchConfig() {
 void sendTelemetry(float temperature, float humidity, float soil, float light, float battery) {
   if (WiFi.status() != WL_CONNECTED || isnan(temperature) || isnan(humidity)) return;
   StaticJsonDocument<512> doc;
-  doc["deviceId"] = DEVICE_ID;
-  doc["temperature"] = temperature;
-  doc["humidity"] = humidity;
-  doc["soilMoisture"] = soil;
-  doc["light"] = light;
-  doc["pump"] = pumpOn;
-  doc["fan"] = fanOn;
-  doc["growLight"] = growLightOn;
-  doc["wifiRssi"] = WiFi.RSSI();
-  doc["batteryVoltage"] = battery;
+  doc["device_id"] = DEVICE_ID;
+  doc["temperature_c"] = temperature;
+  doc["humidity_percent"] = humidity;
+  doc["soil_moisture_percent"] = soil;
+  doc["light_percent"] = light;
+  doc["pump_on"] = pumpOn;
+  doc["fan_on"] = fanOn;
+  doc["grow_light_on"] = growLightOn;
+  doc["wifi_rssi"] = WiFi.RSSI();
+  doc["battery_voltage"] = battery;
   String body; serializeJson(doc, body);
   HTTPClient http;
-  http.begin(SERVER_URL);
-  http.addHeader("Content-Type", "application/json");
-  if (strlen(DEVICE_INGEST_KEY) > 0) http.addHeader("X-Device-Key", DEVICE_INGEST_KEY);
+  http.begin(String(SUPABASE_URL) + "/rest/v1/greenhouse_telemetry");
+  addSupabaseHeaders(http, true);
+  http.addHeader("Prefer", "return=minimal");
   int status = http.POST(body);
-  Serial.printf("Telemetry status: %d\n", status);
+  if (status == HTTP_CODE_CREATED) Serial.println("Telemetry status: 201 (stored)");
+  else Serial.printf("Telemetry status: %d | %s\n", status, http.getString().c_str());
   http.end();
 }
 

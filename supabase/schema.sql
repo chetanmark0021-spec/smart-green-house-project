@@ -43,7 +43,9 @@ values ('greenhouse-esp32-s3-01', 'Smart Greenhouse')
 on conflict (device_id) do nothing;
 
 -- Browser dashboard can read telemetry and device configuration using only a
--- publishable key. Devices never insert directly into these tables.
+-- publishable key. The temporary policy below also lets the ESP32 insert by
+-- direct REST while testing. Replace it with the Edge Function/device-key flow
+-- before exposing the system publicly.
 alter table public.greenhouse_devices enable row level security;
 alter table public.greenhouse_telemetry enable row level security;
 
@@ -54,6 +56,10 @@ create policy "public read devices" on public.greenhouse_devices
 drop policy if exists "public read telemetry" on public.greenhouse_telemetry;
 create policy "public read telemetry" on public.greenhouse_telemetry
   for select to anon, authenticated using (true);
+
+drop policy if exists "temporary direct ESP32 telemetry inserts" on public.greenhouse_telemetry;
+create policy "temporary direct ESP32 telemetry inserts" on public.greenhouse_telemetry
+  for insert to anon, authenticated with check (true);
 
 -- Realtime POSTGRES_CHANGES requires the tables in the publication.
 alter publication supabase_realtime add table public.greenhouse_telemetry;
