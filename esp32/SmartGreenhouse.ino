@@ -47,8 +47,11 @@ unsigned long lastTelemetryAt = 0;
 unsigned long lastConfigAt = 0;
 
 struct Config {
-  float temperatureOn = 35.0;
-  float temperatureOff = 32.0;
+  // Cooling band: fan starts only when the temperature reaches the upper
+  // limit, and remains on until the lower limit is reached. Change these two
+  // values together: temperatureOff must always be lower than temperatureOn.
+  float temperatureOn = 35.0;   // Fan ON at/above 35 °C
+  float temperatureOff = 32.0;  // Fan OFF at/below 32 °C
   float soilMoistureOn = 30.0;
   int irrigationBurstSeconds = 10;
   int irrigationSoakSeconds = 30;
@@ -68,6 +71,12 @@ bool growLightOn = false;
 unsigned long pumpBurstStartedAt = 0;
 unsigned long pumpSoakStartedAt = 0;
 bool pumpSoaking = false;
+
+bool validFanBand(float offTemperature, float onTemperature) {
+  return isfinite(offTemperature) && isfinite(onTemperature) &&
+         offTemperature >= 0.0 && onTemperature <= 60.0 &&
+         offTemperature < onTemperature;
+}
 
 void setRelay(uint8_t pin, bool on) {
   // Most 5 V relay boards are active LOW: LOW energises the relay.
@@ -109,7 +118,8 @@ float batteryVoltage() {
 }
 
 void applyAutomation(float temperature, float soil, float light) {
-  // Hysteresis prevents relays from chattering near each threshold.
+  // Cooling fan hysteresis: never turn a cooling fan on below the configured
+  // temperature band. This avoids rapid relay switching near one threshold.
   if (!config.fanAuto) setFan(config.manualFan);
   else if (!isnan(temperature)) {
     if (temperature >= config.temperatureOn) setFan(true);
@@ -142,8 +152,13 @@ void fetchConfig() {
   if (status == HTTP_CODE_OK) {
     StaticJsonDocument<768> doc;
     if (deserializeJson(doc, http.getString()) == DeserializationError::Ok) {
-      config.temperatureOn = doc["temperatureOn"] | config.temperatureOn;
-      config.temperatureOff = doc["temperatureOff"] | config.temperatureOff;
+      float cloudTemperatureOn = doc["temperatureOn"] | config.temperatureOn;
+      float cloudTemperatureOff = doc["temperatureOff"] | config.temperatureOff;
+      // Ignore a malformed remote range and retain the last safe range.
+      if (validFanBand(cloudTemperatureOff, cloudTemperatureOn)) {
+        config.temperatureOn = cloudTemperatureOn;
+        config.temperatureOff = cloudTemperatureOff;
+      }
       config.soilMoistureOn = doc["soilMoistureOn"] | config.soilMoistureOn;
       config.irrigationBurstSeconds = doc["irrigationBurstSeconds"] | config.irrigationBurstSeconds;
       config.irrigationSoakSeconds = doc["irrigationSoakSeconds"] | config.irrigationSoakSeconds;
@@ -207,6 +222,9 @@ void loop() {
     float light = lightPercent();
     float battery = batteryVoltage();
     applyAutomation(temperature, soil, light);
+    Serial.printf("T: %.1f C | soil: %.0f %% | fan: %s (ON >= %.1f C, OFF <= %.1f C)\n",
+                  temperature, soil, fanOn ? "ON" : "OFF",
+                  config.temperatureOn, config.temperatureOff);
     sendTelemetry(temperature, humidity, soil, light, battery);
   }
 }
