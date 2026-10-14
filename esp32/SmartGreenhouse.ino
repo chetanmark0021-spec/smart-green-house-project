@@ -10,6 +10,8 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 // ---------- Network ----------
 const char* WIFI_SSID = "YOUR_FIXED_WIFI_NAME";
@@ -28,8 +30,17 @@ constexpr uint8_t DHT_TYPE = DHT11;
 constexpr uint8_t SOIL_PIN = 36;      // capacitive soil sensor AO, powered at 3.3 V
 constexpr uint8_t LIGHT_PIN = 2;      // optional LDR divider or BH1750 adapter analogue output
 constexpr bool HAS_LIGHT_SENSOR = false; // invoice has no light sensor; set true after adding one
-constexpr uint8_t BATTERY_PIN = 3;    // optional voltage-divider output; set HAS_BATTERY_SENSOR only after fitting it
-constexpr bool HAS_BATTERY_SENSOR = false;
+constexpr uint8_t BATTERY_PIN = 3;    // Divider midpoint only; never connect battery + directly to this pin.
+constexpr bool HAS_BATTERY_SENSOR = false; // Set true only after wiring the divider below.
+// Divider: battery + -> R_TOP -> BATTERY_PIN -> R_BOTTOM -> battery - / ESP32 GND.
+// These 100 kΩ / 27 kΩ values safely measure a 12 V battery (up to about 15 V).
+constexpr float BATTERY_R_TOP_OHMS = 100000.0;
+constexpr float BATTERY_R_BOTTOM_OHMS = 27000.0;
+constexpr float BATTERY_CALIBRATION = 1.000; // Tune after comparing with a multimeter.
+constexpr uint8_t BATTERY_SAMPLE_COUNT = 16;
+constexpr uint8_t LCD_SDA_PIN = 8; // Change only if these pins are unavailable on your board.
+constexpr uint8_t LCD_SCL_PIN = 9;
+constexpr uint8_t LCD_I2C_ADDRESS = 0x27; // Common alternatives: 0x3F.
 constexpr uint8_t PUMP_RELAY_PIN = 16;
 constexpr uint8_t FAN_RELAY_PIN = 17;
 constexpr uint8_t GROW_LIGHT_RELAY_PIN = 18;
@@ -41,10 +52,24 @@ constexpr int SOIL_DRY_RAW = 3000;
 constexpr int SOIL_WET_RAW = 1300;
 constexpr unsigned long TELEMETRY_INTERVAL_MS = 10000;
 constexpr unsigned long CONFIG_INTERVAL_MS = 15000;
+constexpr unsigned long LCD_PAGE_INTERVAL_MS = 3000;
+constexpr unsigned long LCD_ALERT_DURATION_MS = 4000;
 
 DHT dht(DHT_PIN, DHT_TYPE);
+LiquidCrystal_I2C lcd(LCD_I2C_ADDRESS, 16, 2);
 unsigned long lastTelemetryAt = 0;
 unsigned long lastConfigAt = 0;
+unsigned long lastLcdPageAt = 0;
+unsigned long lcdAlertUntil = 0;
+uint8_t lcdPage = 0;
+bool lcdReady = false;
+char lcdAlertLine1[17] = "";
+char lcdAlertLine2[17] = "";
+float lastTemperature = NAN;
+float lastHumidity = NAN;
+float lastSoil = NAN;
+float lastLight = NAN;
+float lastBattery = NAN;
 
 struct Config {
   // Cooling band: fan starts only when the temperature reaches the upper
@@ -83,9 +108,62 @@ void setRelay(uint8_t pin, bool on) {
   digitalWrite(pin, RELAY_ACTIVE_LOW ? (on ? LOW : HIGH) : (on ? HIGH : LOW));
 }
 
-void setPump(bool on) { pumpOn = on; setRelay(PUMP_RELAY_PIN, on); }
-void setFan(bool on) { fanOn = on; setRelay(FAN_RELAY_PIN, on); }
-void setGrowLight(bool on) { growLightOn = on; setRelay(GROW_LIGHT_RELAY_PIN, on); }
+void setLcdAlert(const char* line1, const char* line2) {
+  snprintf(lcdAlertLine1, sizeof(lcdAlertLine1), "%s", line1);
+  snprintf(lcdAlertLine2, sizeof(lcdAlertLine2), "%s", line2);
+  lcdAlertUntil = millis() + LCD_ALERT_DURATION_MS;
+}
+
+void setPump(bool on) {
+  bool changed = pumpOn != on; pumpOn = on; setRelay(PUMP_RELAY_PIN, on);
+  if (changed && lcdReady) setLcdAlert(on ? "PUMP ON" : "PUMP OFF", on ? "Irrigating" : "Irrigation done");
+}
+void setFan(bool on) {
+  bool changed = fanOn != on; fanOn = on; setRelay(FAN_RELAY_PIN, on);
+  if (changed && lcdReady) setLcdAlert(on ? "FAN ON" : "FAN OFF", on ? "Cooling active" : "Cooling stopped");
+}
+void setGrowLight(bool on) {
+  bool changed = growLightOn != on; growLightOn = on; setRelay(GROW_LIGHT_RELAY_PIN, on);
+  if (changed && lcdReady) setLcdAlert(on ? "LIGHT ON" : "LIGHT OFF", on ? "Grow light active" : "Grow light off");
+}
+
+void lcdLine(uint8_t row, const char* text) {
+  char clipped[17];
+  snprintf(clipped, sizeof(clipped), "%.16s", text);
+  lcd.setCursor(0, row); lcd.print("                ");
+  lcd.setCursor(0, row); lcd.print(clipped);
+}
+
+void refreshLcd() {
+  if (!lcdReady) return;
+  const unsigned long now = millis();
+  if (lcdAlertUntil > now) {
+    lcdLine(0, lcdAlertLine1); lcdLine(1, lcdAlertLine2); return;
+  }
+  if (now - lastLcdPageAt < LCD_PAGE_INTERVAL_MS) return;
+  lastLcdPageAt = now;
+  char line1[17], line2[17];
+  switch (lcdPage++ % 4) {
+    case 0:
+      snprintf(line1, sizeof(line1), "Temp:%4.1fC", lastTemperature);
+      snprintf(line2, sizeof(line2), "Humidity:%3.0f%%", lastHumidity);
+      break;
+    case 1:
+      snprintf(line1, sizeof(line1), "Soil:%5.0f%%", lastSoil);
+      snprintf(line2, sizeof(line2), "Light:%4.0f%%", lastLight);
+      break;
+    case 2:
+      if (HAS_BATTERY_SENSOR) snprintf(line1, sizeof(line1), "Battery:%5.2fV", lastBattery);
+      else snprintf(line1, sizeof(line1), "Battery: not fit");
+      snprintf(line2, sizeof(line2), "WiFi:%4d dBm", WiFi.RSSI());
+      break;
+    default:
+      snprintf(line1, sizeof(line1), "Fan:%s Pump:%s", fanOn ? "ON" : "OFF", pumpOn ? "ON" : "OFF");
+      snprintf(line2, sizeof(line2), "Light:%s %s", growLightOn ? "ON" : "OFF", WiFi.status() == WL_CONNECTED ? "WiFi OK" : "NO WiFi");
+      break;
+  }
+  lcdLine(0, line1); lcdLine(1, line2);
+}
 
 void addSupabaseHeaders(HTTPClient& http, bool includeJsonContentType = false) {
   if (includeJsonContentType) http.addHeader("Content-Type", "application/json");
@@ -122,10 +200,16 @@ float lightPercent() {
 }
 
 float batteryVoltage() {
-  // Requires a correctly designed divider that keeps GPIO voltage <= 3.3 V.
-  // Calibrate the multiplier with a multimeter after fitting the divider.
+  // The divider ensures the ADC pin stays below 3.3 V. Average readings to
+  // reduce relay/pump noise, then reconstruct the original battery voltage.
   if (!HAS_BATTERY_SENSOR) return 0.0;
-  return analogRead(BATTERY_PIN) * (3.3 / 4095.0) * 2.0;
+  uint32_t totalMillivolts = 0;
+  for (uint8_t sample = 0; sample < BATTERY_SAMPLE_COUNT; ++sample) {
+    totalMillivolts += analogReadMilliVolts(BATTERY_PIN);
+    delay(2);
+  }
+  const float pinVoltage = (totalMillivolts / (float)BATTERY_SAMPLE_COUNT) / 1000.0;
+  return pinVoltage * ((BATTERY_R_TOP_OHMS + BATTERY_R_BOTTOM_OHMS) / BATTERY_R_BOTTOM_OHMS) * BATTERY_CALIBRATION;
 }
 
 void applyAutomation(float temperature, float soil, float light) {
@@ -226,7 +310,11 @@ void setup() {
   pinMode(PUMP_RELAY_PIN, OUTPUT); pinMode(FAN_RELAY_PIN, OUTPUT); pinMode(GROW_LIGHT_RELAY_PIN, OUTPUT);
   setPump(false); setFan(false); setGrowLight(false);
   analogReadResolution(12);
+  if (HAS_BATTERY_SENSOR) analogSetPinAttenuation(BATTERY_PIN, ADC_11db);
   dht.begin();
+  Wire.begin(LCD_SDA_PIN, LCD_SCL_PIN);
+  lcd.init(); lcd.backlight(); lcdReady = true;
+  lcdLine(0, "Smart Greenhouse"); lcdLine(1, "Starting...");
   connectWiFi();
   fetchConfig();
 }
@@ -242,10 +330,16 @@ void loop() {
     float soil = soilPercent();
     float light = lightPercent();
     float battery = batteryVoltage();
+    lastTemperature = temperature;
+    lastHumidity = humidity;
+    lastSoil = soil;
+    lastLight = light;
+    lastBattery = battery;
     applyAutomation(temperature, soil, light);
     Serial.printf("T: %.1f C | soil: %.0f %% | fan: %s (ON >= %.1f C, OFF <= %.1f C)\n",
                   temperature, soil, fanOn ? "ON" : "OFF",
                   config.temperatureOn, config.temperatureOff);
     sendTelemetry(temperature, humidity, soil, light, battery);
   }
+  refreshLcd();
 }
