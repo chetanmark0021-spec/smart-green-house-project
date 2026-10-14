@@ -6,6 +6,7 @@
   upload. This final sketch sends directly to Supabase over HTTPS.
 */
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
@@ -100,7 +101,12 @@ void connectWiFi() {
   for (int attempt = 0; attempt < 30 && WiFi.status() != WL_CONNECTED; ++attempt) {
     delay(500); Serial.print('.');
   }
-  Serial.println(WiFi.status() == WL_CONNECTED ? " connected" : " unavailable");
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf(" connected | IP: %s | RSSI: %d dBm\n",
+                  WiFi.localIP().toString().c_str(), WiFi.RSSI());
+  } else {
+    Serial.println(" unavailable");
+  }
 }
 
 float soilPercent() {
@@ -150,11 +156,15 @@ void applyAutomation(float temperature, float soil, float light) {
 
 void fetchConfig() {
   if (WiFi.status() != WL_CONNECTED) return;
+  // Supabase requires HTTPS. setInsecure() is acceptable for this temporary
+  // prototype; production firmware should pin Supabase's root CA certificate.
+  WiFiClientSecure secureClient;
+  secureClient.setInsecure();
   HTTPClient http;
   const String configUrl = String(SUPABASE_URL) +
     "/rest/v1/greenhouse_devices?device_id=eq." + DEVICE_ID +
     "&select=temperature_on,temperature_off,soil_moisture_on,irrigation_burst_seconds,irrigation_soak_seconds,fan_mode,pump_mode,grow_light_mode,manual_fan,manual_pump,manual_grow_light";
-  http.begin(configUrl);
+  http.begin(secureClient, configUrl);
   addSupabaseHeaders(http);
   int status = http.GET();
   if (status == HTTP_CODE_OK) {
@@ -179,7 +189,8 @@ void fetchConfig() {
       config.manualGrowLight = cloud["manual_grow_light"] | false;
     }
   } else {
-    Serial.printf("Configuration status: %d\n", status);
+    Serial.printf("Configuration status: %d (%s)\n", status,
+                  http.errorToString(status).c_str());
   }
   http.end();
 }
@@ -198,8 +209,10 @@ void sendTelemetry(float temperature, float humidity, float soil, float light, f
   doc["wifi_rssi"] = WiFi.RSSI();
   doc["battery_voltage"] = battery;
   String body; serializeJson(doc, body);
+  WiFiClientSecure secureClient;
+  secureClient.setInsecure();
   HTTPClient http;
-  http.begin(String(SUPABASE_URL) + "/rest/v1/greenhouse_telemetry");
+  http.begin(secureClient, String(SUPABASE_URL) + "/rest/v1/greenhouse_telemetry");
   addSupabaseHeaders(http, true);
   http.addHeader("Prefer", "return=minimal");
   int status = http.POST(body);
