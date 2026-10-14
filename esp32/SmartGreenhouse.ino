@@ -32,10 +32,10 @@ constexpr uint8_t LIGHT_PIN = 2;      // optional LDR divider or BH1750 adapter 
 constexpr bool HAS_LIGHT_SENSOR = false; // invoice has no light sensor; set true after adding one
 constexpr uint8_t BATTERY_PIN = 3;    // Divider midpoint only; never connect battery + directly to this pin.
 constexpr bool HAS_BATTERY_SENSOR = false; // Set true only after wiring the divider below.
-// Divider: battery + -> R_TOP -> BATTERY_PIN -> R_BOTTOM -> battery - / ESP32 GND.
-// These 100 kΩ / 27 kΩ values safely measure a 12 V battery (up to about 15 V).
-constexpr float BATTERY_R_TOP_OHMS = 100000.0;
-constexpr float BATTERY_R_BOTTOM_OHMS = 27000.0;
+// Divider: 2S pack P+ -> R_TOP -> BATTERY_PIN -> R_BOTTOM -> pack P- / ESP32 GND.
+// 47 kΩ / 22 kΩ measures a 2S Li-ion pack (6.0–8.4 V) with good ADC range.
+constexpr float BATTERY_R_TOP_OHMS = 47000.0;
+constexpr float BATTERY_R_BOTTOM_OHMS = 22000.0;
 constexpr float BATTERY_CALIBRATION = 1.000; // Tune after comparing with a multimeter.
 constexpr uint8_t BATTERY_SAMPLE_COUNT = 16;
 constexpr uint8_t LCD_SDA_PIN = 8; // Change only if these pins are unavailable on your board.
