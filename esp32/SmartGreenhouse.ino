@@ -24,13 +24,14 @@ const char* SUPABASE_URL = "https://wclsupskijbczcwocmze.supabase.co";
 const char* SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TQFVK7KytP0H-x_3yylRjQ_8wMcWO3u";
 const char* DEVICE_ID = "greenhouse-esp32-s3-01";
 
-// ---------- Wiring: change to match your actual ESP32-S3 board ----------
-constexpr uint8_t DHT_PIN = 4;
+// ---------- ESP32 38-pin DevKit wiring ----------
+// GPIO 34/35/36 are ADC1 input-only pins: ideal for analogue sensors while Wi-Fi runs.
+constexpr uint8_t DHT_PIN = 27;
 constexpr uint8_t DHT_TYPE = DHT11;
 constexpr uint8_t SOIL_PIN = 36;      // capacitive soil sensor AO, powered at 3.3 V
-constexpr uint8_t LIGHT_PIN = 2;      // optional LDR divider or BH1750 adapter analogue output
+constexpr uint8_t LIGHT_PIN = 35;     // optional LDR analogue output; GPIO 35 is input-only ADC1
 constexpr bool HAS_LIGHT_SENSOR = false; // invoice has no light sensor; set true after adding one
-constexpr uint8_t BATTERY_PIN = 3;    // Divider midpoint only; never connect battery + directly to this pin.
+constexpr uint8_t BATTERY_PIN = 34;   // Divider midpoint only; never connect battery + directly to this pin.
 constexpr bool HAS_BATTERY_SENSOR = false; // Set true only after wiring the divider below.
 // Divider: 2S pack P+ -> R_TOP -> BATTERY_PIN -> R_BOTTOM -> pack P- / ESP32 GND.
 // 47 kΩ / 22 kΩ measures a 2S Li-ion pack (6.0–8.4 V) with good ADC range.
@@ -38,8 +39,8 @@ constexpr float BATTERY_R_TOP_OHMS = 47000.0;
 constexpr float BATTERY_R_BOTTOM_OHMS = 22000.0;
 constexpr float BATTERY_CALIBRATION = 1.000; // Tune after comparing with a multimeter.
 constexpr uint8_t BATTERY_SAMPLE_COUNT = 16;
-constexpr uint8_t LCD_SDA_PIN = 8; // Change only if these pins are unavailable on your board.
-constexpr uint8_t LCD_SCL_PIN = 9;
+constexpr uint8_t LCD_SDA_PIN = 21; // Standard ESP32 DevKit I2C pins.
+constexpr uint8_t LCD_SCL_PIN = 22;
 constexpr uint8_t LCD_I2C_ADDRESS = 0x27; // Common alternatives: 0x3F.
 constexpr uint8_t PUMP_RELAY_PIN = 16;
 constexpr uint8_t FAN_RELAY_PIN = 17;

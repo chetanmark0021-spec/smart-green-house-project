@@ -1,10 +1,10 @@
 /* Battery-voltage test - ESP32-S3
    Wiring for a 2S 18650 Li-ion pack (6.0–8.4 V):
-   pack P+ -> 47 kΩ -> GPIO 3 -> 22 kΩ -> pack P- / ESP32 GND
-   Add a 100 nF capacitor from GPIO 3 to GND. Never connect battery + directly
+   pack P+ -> 47 kΩ -> GPIO 34 -> 22 kΩ -> pack P- / ESP32 GND
+   Add a 100 nF capacitor from GPIO 34 to GND. Never connect battery + directly
    to an ESP32 GPIO. This divider is for the battery-pack output, not 12 V.
 */
-constexpr uint8_t BATTERY_PIN = 3;
+constexpr uint8_t BATTERY_PIN = 34;
 constexpr float R_TOP_OHMS = 47000.0;
 constexpr float R_BOTTOM_OHMS = 22000.0;
 constexpr float CALIBRATION = 1.000;

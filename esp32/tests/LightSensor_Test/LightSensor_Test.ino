@@ -1,8 +1,8 @@
 /* Optional analogue light-sensor test - ESP32-S3
    Use only after adding an LDR module / analogue light sensor.
-   Wiring: VCC -> 3.3V, GND -> GND, AO -> GPIO 2.
+   Wiring: VCC -> 3.3V, GND -> GND, AO -> GPIO 35.
 */
-constexpr uint8_t LIGHT_PIN = 2;
+constexpr uint8_t LIGHT_PIN = 35;
 
 void setup() {
   Serial.begin(115200);

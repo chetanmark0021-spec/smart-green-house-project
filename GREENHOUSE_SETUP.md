@@ -2,7 +2,7 @@
 
 ## What the dashboard does
 
-- Receives DHT11 temperature and humidity plus capacitive soil-moisture readings from the ESP32-S3.
+- Receives DHT11 temperature and humidity plus capacitive soil-moisture readings from the ESP32 38-pin DevKit.
 - Shows live KPI cards and the latest 60 readings in a browser graph.
 - Keeps pump, fan, and grow-light control on the ESP32 so automation survives a dashboard or Wi-Fi outage.
 - Sends the ESP32's real relay states back to the dashboard.
@@ -18,26 +18,28 @@ cd "C:\Users\Chetan\Documents\Smart green house\LeafDiseaseDetector"
 
 Open `http://127.0.0.1:5000` on the laptop. Find the laptop's Wi-Fi IPv4 address with `ipconfig`; enter that address in `SERVER_URL` in `esp32/SmartGreenhouse.ino`. The ESP32 cannot use `127.0.0.1`, because that would point back to itself.
 
-## ESP32-S3 wiring
+## ESP32 38-pin DevKit wiring
 
-| Part | ESP32-S3 pin in firmware | Notes |
+| Part | ESP32 pin in firmware | Notes |
 |---|---:|---|
-| DHT11 data | GPIO 4 | Use 3.3 V and a shared ground. |
-| Capacitive soil sensor AO | GPIO 1 | Power the analogue sensor from 3.3 V, never 5 V. |
+| DHT11 data | GPIO 27 | Use 3.3 V and a shared ground. |
+| Capacitive soil sensor AO | GPIO 36 | Input-only ADC1 pin. Power the analogue sensor from 3.3 V, never 5 V. |
 | Pump relay IN | GPIO 16 | Relay module must share ground with the ESP32. |
 | Fan relay IN | GPIO 17 | Drive the 12 V fan from its separate supply through the relay. |
 | Grow-light relay IN | GPIO 18 | Same relay precautions as the fan. |
-| Optional light-sensor output | GPIO 2 | The invoice does not include a light sensor. Add an LDR module or BH1750 before enabling brightness automation. |
-| Optional battery-divider output | GPIO 3 | The invoice voltmeter cannot send data to ESP32. Add a safe resistor divider before enabling battery telemetry. |
+| Optional light-sensor output | GPIO 35 | Input-only ADC1 pin. The invoice does not include a light sensor. Add an LDR module before enabling brightness automation. |
+| Optional battery-divider output | GPIO 34 | Input-only ADC1 pin. Add a safe resistor divider before enabling battery telemetry. |
+| I2C LCD SDA | GPIO 21 | 16×2 I2C LCD data line. |
+| I2C LCD SCL | GPIO 22 | 16×2 I2C LCD clock line. |
 
 Do not power the pump or fan from an ESP32 pin. Use the relay contacts and their separate power supply. Add a flyback diode when using a bare DC pump instead of a relay module.
 
 ## First firmware upload
 
-1. Install the Arduino libraries **DHT sensor library** and **ArduinoJson**.
-2. Edit `WIFI_SSID`, `WIFI_PASSWORD`, `SERVER_URL`, and the GPIO values if your wiring differs.
+1. Install the Arduino libraries **DHT sensor library**, **ArduinoJson**, and **LiquidCrystal I2C**.
+2. Select **ESP32 Dev Module** in Arduino IDE. Edit `WIFI_SSID`, `WIFI_PASSWORD`, `SUPABASE_URL`, and the GPIO values if your wiring differs.
 3. In Serial Monitor, read the soil sensor's raw value when dry and when in wet soil. Replace `SOIL_DRY_RAW` and `SOIL_WET_RAW` with those values.
-4. Upload `esp32/SmartGreenhouse.ino` using the correct ESP32-S3 board selection.
+4. Upload `esp32/SmartGreenhouse.ino` using the ESP32 Dev Module board selection.
 5. Allow inbound TCP port 5000 in Windows Firewall on your private Wi-Fi network if the ESP32 cannot reach the dashboard.
 
 ## Test every part before the combined upload

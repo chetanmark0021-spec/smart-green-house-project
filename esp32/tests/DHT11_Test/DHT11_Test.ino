@@ -1,10 +1,10 @@
 /* DHT11 individual sensor test - ESP32-S3
-   Wiring: DHT11 VCC -> 3.3V, GND -> GND, DATA -> GPIO 4
+   Wiring: DHT11 VCC -> 3.3V, GND -> GND, DATA -> GPIO 27
    Install: DHT sensor library by Adafruit
 */
 #include <DHT.h>
 
-constexpr uint8_t DHT_PIN = 4;
+constexpr uint8_t DHT_PIN = 27;
 constexpr uint8_t DHT_TYPE = DHT11;
 DHT dht(DHT_PIN, DHT_TYPE);
 
