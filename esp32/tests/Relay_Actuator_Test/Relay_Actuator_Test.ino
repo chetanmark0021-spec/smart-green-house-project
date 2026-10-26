@@ -6,7 +6,8 @@
 constexpr uint8_t PUMP_RELAY_PIN = 16;
 constexpr uint8_t FAN_RELAY_PIN = 17;
 constexpr uint8_t GROW_LIGHT_RELAY_PIN = 18;
-constexpr bool RELAY_ACTIVE_LOW = true;
+// Confirmed 5 V relay board: GPIO HIGH switches the relay on.
+constexpr bool RELAY_ACTIVE_LOW = false;
 constexpr unsigned long TEST_ON_MS = 3000;
 constexpr unsigned long TEST_OFF_MS = 2000;
 

@@ -45,7 +45,8 @@ constexpr uint8_t LCD_I2C_ADDRESS = 0x27; // Common alternatives: 0x3F.
 constexpr uint8_t PUMP_RELAY_PIN = 16;
 constexpr uint8_t FAN_RELAY_PIN = 17;
 constexpr uint8_t GROW_LIGHT_RELAY_PIN = 18;
-constexpr bool RELAY_ACTIVE_LOW = true;
+// Confirmed with the user's 5 V relay board: ESP32 HIGH activates a channel.
+constexpr bool RELAY_ACTIVE_LOW = false;
 
 // Measure these with the exact sensor after it is installed.
 // Dry air reading usually has a larger value than wet soil on capacitive probes.
@@ -105,7 +106,7 @@ bool validFanBand(float offTemperature, float onTemperature) {
 }
 
 void setRelay(uint8_t pin, bool on) {
-  // Most 5 V relay boards are active LOW: LOW energises the relay.
+  // Supports either relay polarity. This installed board is active HIGH.
   digitalWrite(pin, RELAY_ACTIVE_LOW ? (on ? LOW : HIGH) : (on ? HIGH : LOW));
 }
 

@@ -34,6 +34,8 @@ Open `http://127.0.0.1:5000` on the laptop. Find the laptop's Wi-Fi IPv4 address
 
 Do not power the pump or fan from an ESP32 pin. Use the relay contacts and their separate power supply. Add a flyback diode when using a bare DC pump instead of a relay module.
 
+The confirmed 5 V relay board is active-HIGH: GPIO HIGH turns a channel on. Its VCC comes from the 5 V LM2596 output, its GND is shared with ESP32 GND, and its 12 V load wiring goes only through the relay contact terminals.
+
 ## First firmware upload
 
 1. Install the Arduino libraries **DHT sensor library**, **ArduinoJson**, and **LiquidCrystal I2C**.
