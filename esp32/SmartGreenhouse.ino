@@ -86,8 +86,8 @@ struct Config {
   // Cooling band: fan starts only when the temperature reaches the upper
   // limit, and remains on until the lower limit is reached. Change these two
   // values together: temperatureOff must always be lower than temperatureOn.
-  float temperatureOn = 35.0;   // Fan ON at/above 35 °C
-  float temperatureOff = 32.0;  // Fan OFF at/below 32 °C
+  float temperatureOn = 30.0;   // Fan ON at/above 30 °C
+  float temperatureOff = 29.0;  // Fan OFF at/below 29 °C
   float soilMoistureOn = 30.0;
   int irrigationBurstSeconds = 10;
   int irrigationSoakSeconds = 30;

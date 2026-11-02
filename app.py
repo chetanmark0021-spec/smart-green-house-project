@@ -41,8 +41,8 @@ telemetry_history = deque(maxlen=720)  # two hours at one reading every 10 s
 latest_telemetry = None
 last_alert_at = {}
 control_config = {
-    "temperatureOn": 35.0,
-    "temperatureOff": 32.0,
+    "temperatureOn": 30.0,
+    "temperatureOff": 29.0,
     "soilMoistureOn": 30.0,
     "soilMoistureOff": 45.0,
     "irrigationBurstSeconds": 10,
