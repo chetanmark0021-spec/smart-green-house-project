@@ -6,7 +6,7 @@
 - Shows live KPI cards and the latest 60 readings in a browser graph.
 - Keeps pump, fan, and grow-light control on the ESP32 so automation survives a dashboard or Wi-Fi outage.
 - Sends the ESP32's real relay states back to the dashboard.
-- Lets you set thresholds from the dashboard. The ESP32 downloads them every 15 seconds.
+- Uses local ESP32 thresholds for every actuator decision. Supabase and the dashboard are telemetry-only.
 - Uses the laptop webcam or an uploaded image for CropGuard leaf disease classification.
 
 ## Start the local server

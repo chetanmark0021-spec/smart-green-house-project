@@ -60,7 +60,6 @@ constexpr bool RELAY_ACTIVE_LOW = false;
 constexpr int SOIL_DRY_RAW = 3000;
 constexpr int SOIL_WET_RAW = 1300;
 constexpr unsigned long TELEMETRY_INTERVAL_MS = 10000;
-constexpr unsigned long CONFIG_INTERVAL_MS = 15000;
 constexpr unsigned long LCD_PAGE_INTERVAL_MS = 3000;
 constexpr unsigned long LCD_ALERT_DURATION_MS = 4000;
 
@@ -69,7 +68,6 @@ DHT dht(DHT_PIN, DHT_TYPE);
 LiquidCrystal_I2C lcd(LCD_I2C_ADDRESS, 16, 2);
 #endif
 unsigned long lastTelemetryAt = 0;
-unsigned long lastConfigAt = 0;
 unsigned long lastLcdPageAt = 0;
 unsigned long lcdAlertUntil = 0;
 uint8_t lcdPage = 0;
@@ -86,6 +84,7 @@ struct Config {
   // Cooling band: fan starts only when the temperature reaches the upper
   // limit, and remains on until the lower limit is reached. Change these two
   // values together: temperatureOff must always be lower than temperatureOn.
+  // These automation values live on the ESP32 and are never replaced by cloud data.
   float temperatureOn = 30.0;   // Fan ON at/above 30 °C
   float temperatureOff = 29.0;  // Fan OFF at/below 29 °C
   float soilMoistureOn = 30.0;
@@ -107,12 +106,6 @@ bool growLightOn = false;
 unsigned long pumpBurstStartedAt = 0;
 unsigned long pumpSoakStartedAt = 0;
 bool pumpSoaking = false;
-
-bool validFanBand(float offTemperature, float onTemperature) {
-  return isfinite(offTemperature) && isfinite(onTemperature) &&
-         offTemperature >= 0.0 && onTemperature <= 60.0 &&
-         offTemperature < onTemperature;
-}
 
 void setRelay(uint8_t pin, bool on) {
   // Supports either relay polarity. This installed board is active HIGH.
@@ -253,47 +246,6 @@ void applyAutomation(float temperature, float soil, float light) {
   }
 }
 
-void fetchConfig() {
-  if (WiFi.status() != WL_CONNECTED) return;
-  // Supabase requires HTTPS. setInsecure() is acceptable for this temporary
-  // prototype; production firmware should pin Supabase's root CA certificate.
-  WiFiClientSecure secureClient;
-  secureClient.setInsecure();
-  HTTPClient http;
-  const String configUrl = String(SUPABASE_URL) +
-    "/rest/v1/greenhouse_devices?device_id=eq." + DEVICE_ID +
-    "&select=temperature_on,temperature_off,soil_moisture_on,irrigation_burst_seconds,irrigation_soak_seconds,fan_mode,pump_mode,grow_light_mode,manual_fan,manual_pump,manual_grow_light";
-  http.begin(secureClient, configUrl);
-  addSupabaseHeaders(http);
-  int status = http.GET();
-  if (status == HTTP_CODE_OK) {
-    StaticJsonDocument<768> doc;
-    if (deserializeJson(doc, http.getString()) == DeserializationError::Ok && doc.size() > 0) {
-      JsonObject cloud = doc[0];
-      float cloudTemperatureOn = cloud["temperature_on"] | config.temperatureOn;
-      float cloudTemperatureOff = cloud["temperature_off"] | config.temperatureOff;
-      // Ignore a malformed remote range and retain the last safe range.
-      if (validFanBand(cloudTemperatureOff, cloudTemperatureOn)) {
-        config.temperatureOn = cloudTemperatureOn;
-        config.temperatureOff = cloudTemperatureOff;
-      }
-      config.soilMoistureOn = cloud["soil_moisture_on"] | config.soilMoistureOn;
-      config.irrigationBurstSeconds = cloud["irrigation_burst_seconds"] | config.irrigationBurstSeconds;
-      config.irrigationSoakSeconds = cloud["irrigation_soak_seconds"] | config.irrigationSoakSeconds;
-      config.pumpAuto = String(cloud["pump_mode"] | "auto") != "manual";
-      config.fanAuto = String(cloud["fan_mode"] | "auto") != "manual";
-      config.growLightAuto = String(cloud["grow_light_mode"] | "auto") != "manual";
-      config.manualPump = cloud["manual_pump"] | false;
-      config.manualFan = cloud["manual_fan"] | false;
-      config.manualGrowLight = cloud["manual_grow_light"] | false;
-    }
-  } else {
-    Serial.printf("Configuration status: %d (%s)\n", status,
-                  http.errorToString(status).c_str());
-  }
-  http.end();
-}
-
 void sendTelemetry(float temperature, float humidity, float soil, float light, float battery) {
   if (WiFi.status() != WL_CONNECTED || isnan(temperature) || isnan(humidity)) return;
   StaticJsonDocument<512> doc;
@@ -333,13 +285,11 @@ void setup() {
   lcdLine(0, "Smart Greenhouse"); lcdLine(1, "Starting...");
 #endif
   connectWiFi();
-  fetchConfig();
 }
 
 void loop() {
   connectWiFi();
   const unsigned long now = millis();
-  if (now - lastConfigAt >= CONFIG_INTERVAL_MS) { lastConfigAt = now; fetchConfig(); }
   if (now - lastTelemetryAt >= TELEMETRY_INTERVAL_MS) {
     lastTelemetryAt = now;
     float temperature = dht.readTemperature();
