@@ -1,5 +1,5 @@
 /*
-  Smart Greenhouse - ESP32-S3 firmware
+  Smart Greenhouse - ESP32 38-pin DevKit firmware
   Libraries (Arduino Library Manager): DHT sensor library, ArduinoJson
 
   Change Wi-Fi credentials, Supabase settings, pins and soil calibration before
@@ -10,8 +10,15 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
+
+// Keep this at 0 while the I2C LCD is disconnected. Set to 1 only after the
+// LCD has been wired and its I2C address is confirmed with the scanner sketch.
+#define ENABLE_LCD 0
+
+#if ENABLE_LCD
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#endif
 
 // ---------- Network ----------
 const char* WIFI_SSID = "YOUR_FIXED_WIFI_NAME";
@@ -58,7 +65,9 @@ constexpr unsigned long LCD_PAGE_INTERVAL_MS = 3000;
 constexpr unsigned long LCD_ALERT_DURATION_MS = 4000;
 
 DHT dht(DHT_PIN, DHT_TYPE);
+#if ENABLE_LCD
 LiquidCrystal_I2C lcd(LCD_I2C_ADDRESS, 16, 2);
+#endif
 unsigned long lastTelemetryAt = 0;
 unsigned long lastConfigAt = 0;
 unsigned long lastLcdPageAt = 0;
@@ -129,6 +138,7 @@ void setGrowLight(bool on) {
   if (changed && lcdReady) setLcdAlert(on ? "LIGHT ON" : "LIGHT OFF", on ? "Grow light active" : "Grow light off");
 }
 
+#if ENABLE_LCD
 void lcdLine(uint8_t row, const char* text) {
   char clipped[17];
   snprintf(clipped, sizeof(clipped), "%.16s", text);
@@ -166,6 +176,9 @@ void refreshLcd() {
   }
   lcdLine(0, line1); lcdLine(1, line2);
 }
+#else
+void refreshLcd() {}
+#endif
 
 void addSupabaseHeaders(HTTPClient& http, bool includeJsonContentType = false) {
   if (includeJsonContentType) http.addHeader("Content-Type", "application/json");
@@ -314,9 +327,11 @@ void setup() {
   analogReadResolution(12);
   if (HAS_BATTERY_SENSOR) analogSetPinAttenuation(BATTERY_PIN, ADC_11db);
   dht.begin();
+#if ENABLE_LCD
   Wire.begin(LCD_SDA_PIN, LCD_SCL_PIN);
   lcd.init(); lcd.backlight(); lcdReady = true;
   lcdLine(0, "Smart Greenhouse"); lcdLine(1, "Starting...");
+#endif
   connectWiFi();
   fetchConfig();
 }
