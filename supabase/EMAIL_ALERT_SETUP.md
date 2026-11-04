@@ -47,7 +47,9 @@ ALERT_COOLDOWN_SECONDS=1800
 ## Alert conditions
 
 - Cooling fan changed from OFF to ON: one email.
-- Soil remains below 20% while the pump is ON for at least two minutes: email.
+- Soil remains below 20% for at least two minutes after local irrigation
+  attempts begin: email. The ESP32's short pump bursts and soak periods are
+  treated as one irrigation attempt sequence.
 - Battery is at or below 7.00 V: email, only when the battery divider is fitted
   and firmware sends a voltage above 0.
 - Each persistent alert is limited by `ALERT_COOLDOWN_SECONDS` (30 minutes by

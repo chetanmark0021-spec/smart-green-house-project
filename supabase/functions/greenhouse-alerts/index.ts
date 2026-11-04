@@ -97,10 +97,14 @@ const handler = async (request: Request, ctx: { supabaseAdmin: any }) => {
     reasons.push({ key: "fan-started", text: "Cooling fan started because the greenhouse temperature reached the local ESP32 threshold." });
   }
 
-  if (reading.pump_on && soil < DRY_SOIL_PERCENT) {
-    if (!dryPumpStartedAt) dryPumpStartedAt = new Date(now).toISOString();
-    if (now - new Date(dryPumpStartedAt).getTime() >= DRY_PUMP_WAIT_MS) {
-      reasons.push({ key: "soil-dry-after-pump", text: `Soil remains critically dry at ${soil.toFixed(0)}% after the pump has been running for at least two minutes. Check the tank, pump and irrigation pipe.` });
+  // The ESP32 irrigates in short bursts separated by a soak period. Start the
+  // timer when irrigation first begins, retain it through those short OFF
+  // periods, and reset only after soil recovers. This detects failed repeated
+  // irrigation attempts without falsely requiring a continuously running pump.
+  if (soil < DRY_SOIL_PERCENT) {
+    if (reading.pump_on && !dryPumpStartedAt) dryPumpStartedAt = new Date(now).toISOString();
+    if (reading.pump_on && dryPumpStartedAt && now - new Date(dryPumpStartedAt).getTime() >= DRY_PUMP_WAIT_MS) {
+      reasons.push({ key: "soil-dry-after-pump", text: `Soil remains critically dry at ${soil.toFixed(0)}% after at least two minutes of local irrigation attempts. Check the tank, pump and irrigation pipe.` });
     }
   } else {
     dryPumpStartedAt = null;
