@@ -37,7 +37,14 @@ constexpr uint8_t DHT_PIN = 27;
 constexpr uint8_t DHT_TYPE = DHT11;
 constexpr uint8_t SOIL_PIN = 36;      // capacitive soil sensor AO, powered at 3.3 V
 constexpr uint8_t LIGHT_PIN = 35;     // optional LDR analogue output; GPIO 35 is input-only ADC1
-constexpr bool HAS_LIGHT_SENSOR = false; // invoice has no light sensor; set true after adding one
+// Grow-light options: leave the sensor false for the current timer test.
+// Later, fit an LDR module to GPIO 35 and change this to true.
+constexpr bool HAS_LIGHT_SENSOR = false;
+constexpr bool GROW_LIGHT_TIMER_TEST_MODE = true;
+constexpr unsigned long GROW_LIGHT_TEST_ON_MS = 30000;  // 30 seconds ON
+constexpr unsigned long GROW_LIGHT_TEST_OFF_MS = 30000; // 30 seconds OFF
+constexpr float LDR_DARK_PERCENT = 30.0;   // turn light ON at/below this reading
+constexpr float LDR_BRIGHT_PERCENT = 45.0; // turn light OFF at/above this reading
 constexpr uint8_t BATTERY_PIN = 34;   // Divider midpoint only; never connect battery + directly to this pin.
 constexpr bool HAS_BATTERY_SENSOR = false; // Set true only after wiring the divider below.
 // Divider: 2S pack P+ -> R_TOP -> BATTERY_PIN -> R_BOTTOM -> pack P- / ESP32 GND.
@@ -239,9 +246,22 @@ void applyAutomation(float temperature, float soil, float light) {
       setPump(true); pumpBurstStartedAt = now;
     }
   }
-  if (!config.growLightAuto) setGrowLight(config.manualGrowLight);
-  else {
-    // Time schedule needs NTP time; light sensor is an optional future alternative.
+  // Load protection has highest priority: never run the grow light while the
+  // pump or cooling fan is running from the same 12 V adapter.
+  if (pumpOn || fanOn) {
+    setGrowLight(false);
+  } else if (!config.growLightAuto) {
+    setGrowLight(config.manualGrowLight);
+  } else if (GROW_LIGHT_TIMER_TEST_MODE) {
+    // Bench test without an LDR: repeat ON then OFF continuously.
+    const unsigned long cycleMs = GROW_LIGHT_TEST_ON_MS + GROW_LIGHT_TEST_OFF_MS;
+    setGrowLight((millis() % cycleMs) < GROW_LIGHT_TEST_ON_MS);
+  } else if (HAS_LIGHT_SENSOR) {
+    // LDR hysteresis avoids relay chatter around a single brightness limit.
+    if (light <= LDR_DARK_PERCENT) setGrowLight(true);
+    else if (light >= LDR_BRIGHT_PERCENT) setGrowLight(false);
+  } else {
+    // No timer test and no LDR: do not energise the light.
     setGrowLight(false);
   }
 }

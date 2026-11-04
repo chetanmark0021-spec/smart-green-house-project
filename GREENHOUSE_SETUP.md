@@ -36,6 +36,8 @@ Do not power the pump or fan from an ESP32 pin. Use the relay contacts and their
 
 The confirmed 5 V relay board is active-HIGH: GPIO HIGH turns a channel on. Its VCC comes from the 5 V LM2596 output, its GND is shared with ESP32 GND, and its 12 V load wiring goes only through the relay contact terminals.
 
+The current grow-light firmware is in a local bench-test cycle: 30 seconds ON, then 30 seconds OFF. The grow light is forced OFF whenever the water pump or cooling fan is ON, reducing the load on the shared 12 V adapter. To use an LDR later, wire its analogue output to GPIO 35, set `HAS_LIGHT_SENSOR` to `true`, and set `GROW_LIGHT_TIMER_TEST_MODE` to `false` in the firmware.
+
 ## First firmware upload
 
 1. Install the Arduino libraries **DHT sensor library**, **ArduinoJson**, and **LiquidCrystal I2C**.
