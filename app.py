@@ -104,6 +104,76 @@ def plant_pipeline(image):
         return "Processing error", 0.0
 
 
+def readable_prediction(prediction):
+    """Format PlantVillage-style class names for a farmer-facing result."""
+    return prediction.replace("___", " — ").replace("_", " ").replace("  ", " ").strip()
+
+
+def disease_guidance(prediction, confidence):
+    """Return cautious, actionable IPM guidance alongside a model prediction.
+
+    The classifier identifies a visual class; it cannot replace a local plant
+    pathology diagnosis. Recommendations therefore prioritise sanitation,
+    airflow, irrigation practice and confirmation before any crop chemical.
+    """
+    label = readable_prediction(prediction)
+    lowered = prediction.lower()
+    shared_sources = [
+        {"label": "UMN: managing plant diseases", "url": "https://extension.umn.edu/garden-and-home/yard-and-garden/yard-and-garden-problems/managing-plant-diseases-in-the-home-garden"},
+        {"label": "Penn State: ecological disease management", "url": "https://extension.psu.edu/ecological-disease-management"},
+    ]
+    if "uncertain" in lowered or "processing error" in lowered:
+        return {
+            "kind": "review", "severity": "Needs a clearer scan", "headline": "Retake the photo before treating the plant.",
+            "summary": "The model is not confident enough to provide disease-specific guidance.",
+            "actions": ["Photograph one leaf against a plain background in bright indirect light.", "Include both leaf surfaces and avoid motion blur, shadows and overlapping leaves.", "Inspect the plant for pests, stem damage and wet soil before making changes."],
+            "avoid": "Do not apply treatment based on a low-confidence image.", "sources": shared_sources,
+        }
+    if "healthy" in lowered:
+        return {
+            "kind": "healthy", "severity": "Low concern", "headline": "No disease pattern was identified in this leaf image.",
+            "summary": "Continue routine monitoring; a healthy-looking leaf does not rule out problems elsewhere on the plant.",
+            "actions": ["Check the plant weekly, including undersides of leaves.", "Water at the soil level and let foliage dry quickly.", "Keep tools and pots clean before moving between plants."],
+            "avoid": "Avoid preventive pesticide use unless a local label and diagnosis support it.", "sources": shared_sources,
+        }
+
+    severe = any(term in lowered for term in ("late_blight", "yellow_leaf_curl", "mosaic_virus", "haunglongbing"))
+    plan = {
+        "kind": "disease", "severity": "High priority" if severe else "Monitor closely",
+        "headline": f"Possible {label}",
+        "summary": "Treat this as a visual screening result. Confirm the crop, symptoms and local disease conditions before using any product.",
+        "actions": [
+            "Separate the affected plant from healthy plants if practical, and inspect nearby plants.",
+            "Remove only clearly affected leaves when foliage is dry; disinfect tools before returning to healthy plants.",
+            "Water at the soil level, improve spacing and airflow, and avoid handling wet foliage.",
+        ],
+        "avoid": "Do not rely on a pesticide alone. Use only a locally approved product labelled for this crop and problem, following its label exactly.",
+        "sources": shared_sources,
+    }
+    if "spider_mite" in lowered:
+        plan.update({
+            "kind": "pest", "headline": f"Possible pest pressure: {label}",
+            "summary": "Check leaf undersides for fine webbing and moving mites; pests can resemble disease damage in a single photo.",
+            "actions": ["Isolate the plant and inspect leaf undersides with a hand lens.", "Rinse a small plant gently with water and remove heavily damaged leaves.", "Monitor nearby plants before considering a crop-labelled control."],
+        })
+    elif any(term in lowered for term in ("mildew", "mold")):
+        plan.update({
+            "summary": "Mildew and mold commonly spread when foliage stays humid or crowded.",
+            "actions": ["Remove affected leaves or shoots when dry and discard them away from healthy plants.", "Increase ventilation and spacing; keep foliage dry by watering near roots.", "Clean tools and remove dead plant debris around the plant."],
+        })
+    elif "bacterial" in lowered:
+        plan.update({
+            "summary": "Bacterial leaf symptoms can spread through splash water, wet handling and contaminated tools.",
+            "actions": ["Avoid overhead watering and do not handle plants while leaves are wet.", "Remove affected leaves when dry and disinfect tools between plants.", "Inspect nearby plants and avoid saving seed from affected plants."],
+        })
+    elif any(term in lowered for term in ("virus", "curl", "haunglongbing")):
+        plan.update({
+            "severity": "High priority", "summary": "Virus-like symptoms need confirmation because treatment options are limited and insect vectors may spread them.",
+            "actions": ["Isolate the plant and inspect nearby plants for whiteflies, aphids or other vectors.", "Do not propagate or save seed from symptomatic plants.", "Contact a local agriculture extension service or nursery professional for crop-specific confirmation."],
+        })
+    return plan
+
+
 def annotated_image_data_url(image, prediction, confidence):
     """Return an image with the classified leaf clearly marked for the web UI.
 
@@ -724,7 +794,8 @@ def upload_json():
         return jsonify({
             "prediction": prediction,
             "confidence": round(confidence, 3),
-            "annotated_image": annotated_image
+            "annotated_image": annotated_image,
+            "guidance": disease_guidance(prediction, confidence),
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
