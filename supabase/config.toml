@@ -1,0 +1,3 @@
+[functions.greenhouse-alerts]
+# Database Webhooks authenticate with the project's secret API key, not a user JWT.
+verify_jwt = false
