@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useGreenhouseMode } from "./components/GreenhouseModeProvider";
 
@@ -81,6 +81,58 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [adminPin, setAdminPin] = useState("");
+  const [controlAuthenticated, setControlAuthenticated] = useState(false);
+  const [controlBusy, setControlBusy] = useState(false);
+  const [controlMessage, setControlMessage] = useState("");
+
+  useEffect(() => {
+    void fetch("/api/growth/auth", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => setControlAuthenticated(result.authenticated === true))
+      .catch(() => setControlAuthenticated(false));
+  }, []);
+
+  async function signInForEquipmentControl(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setControlBusy(true);
+    setControlMessage("");
+    try {
+      const response = await fetch("/api/growth/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: adminPin }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Admin PIN was rejected.");
+      setControlAuthenticated(true);
+      setAdminPin("");
+      setControlMessage("Test controls unlocked for this browser session.");
+    } catch (cause) {
+      setControlMessage(cause instanceof Error ? cause.message : "Admin sign-in failed.");
+    } finally {
+      setControlBusy(false);
+    }
+  }
+
+  async function sendEquipmentCommand(action: "resume-auto" | "test", equipment?: string, on?: boolean) {
+    setControlBusy(true);
+    setControlMessage("");
+    try {
+      const response = await fetch("/api/equipment-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, equipment, on }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not send the test command.");
+      setControlMessage(result.message);
+    } catch (cause) {
+      setControlMessage(cause instanceof Error ? cause.message : "Could not send the test command.");
+    } finally {
+      setControlBusy(false);
+    }
+  }
 
   /* LOAD DATA ACCORDING TO MASTER MODE */
   const loadTelemetry = useCallback(async () => {
@@ -228,12 +280,9 @@ export default function Dashboard() {
     return age >= 0 && age <= ONLINE_TIMEOUT_MS;
   }, [data, now, simulationMode]);
 
-  // The deployed ESP32 firmware keeps actuator automation local and does not
-  // poll cloud commands. Show its reported state; never imply cloud controls
-  // are active until a secured firmware command path is deployed.
   const commandMessage = simulationMode
     ? "Simulation only. Hardware is not being controlled."
-    : "Pump, fan, and light are controlled locally by the ESP32. Remote commands are not enabled in the deployed firmware.";
+    : "Use the protected test buttons to briefly check each relay. Local ESP32 automation remains available with Resume local automation.";
 
   const temperature = data?.temperature_c ?? null;
   const humidity = data?.humidity_percent ?? null;
@@ -658,7 +707,7 @@ export default function Dashboard() {
           <div className="gm-section-heading">
             <div>
               <h2>Equipment Status and Control</h2>
-              <p>View the actuator states reported by the ESP32.</p>
+              <p>Test each relay manually, then return the device to local automatic control.</p>
             </div>
             <span className="gm-manual-label">
               {simulationMode ? "SIMULATION MODE" : deviceOnline ? "ESP32 ONLINE" : "ESP32 OFFLINE"}
@@ -671,46 +720,54 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="gm-error">{commandMessage}</div>
+              <p className="gm-last-update">{commandMessage}</p>
               <div className="gm-panel" style={{ marginBottom: 18 }}>
                 <div className="gm-panel-heading">
                   <div>
-                    <h3>Operating Mode</h3>
-                    <p>Automation runs locally on the ESP32. Remote mode switching is unavailable.</p>
+                    <h3>Local automation</h3>
+                    <p>Use this after relay testing to restore the ESP32’s local sensor-based behavior.</p>
                   </div>
-                  <strong>LOCAL AUTO</strong>
+                  <strong>ESP32 CONTROL</strong>
                 </div>
-                <div className="gm-device-grid">
-                  <button
-                    type="button"
-                    className="gm-theme-button"
-                    disabled
-                    aria-pressed="true"
-                  >
-                    🤖 AUTO ACTIVE (ESP32)
-                  </button>
-                  <button
-                    type="button"
-                    className="gm-theme-button"
-                    disabled
-                  >
-                    🎛️ REMOTE MANUAL UNAVAILABLE
-                  </button>
-                  <button
-                    type="button"
-                    className="gm-theme-button"
-                    disabled
-                  >
-                    🛑 REMOTE STOP UNAVAILABLE
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="gm-theme-button"
+                  disabled={!controlAuthenticated || controlBusy || !deviceOnline}
+                  onClick={() => void sendEquipmentCommand("resume-auto")}
+                >
+                  🤖 RESUME LOCAL AUTOMATION
+                </button>
               </div>
+
+              {!controlAuthenticated && (
+                <form className="gm-panel" onSubmit={signInForEquipmentControl} style={{ marginBottom: 18 }}>
+                  <div className="gm-panel-heading">
+                    <div>
+                      <h3>Unlock relay test controls</h3>
+                      <p>Enter the greenhouse admin PIN to switch test outputs.</p>
+                    </div>
+                  </div>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    autoComplete="current-password"
+                    aria-label="Greenhouse admin PIN"
+                    value={adminPin}
+                    onChange={(event) => setAdminPin(event.target.value)}
+                    placeholder="Admin PIN"
+                    required
+                  />
+                  <button type="submit" className="gm-theme-button" disabled={controlBusy || !adminPin}>
+                    Unlock test controls
+                  </button>
+                </form>
+              )}
 
               <div className="gm-device-grid">
                 {([
-                  { name: "Water Pump", description: "Irrigation system", icon: "🚿", key: "pump_on" as const, actual: data?.pump_on },
-                  { name: "Cooling Fan", description: "Temperature control", icon: "🌀", key: "fan_on" as const, actual: data?.fan_on },
-                  { name: "Grow Light", description: "Plant lighting", icon: "💡", key: "grow_light_on" as const, actual: data?.grow_light_on },
+                  { name: "Water Pump", description: "Irrigation relay", icon: "🚿", key: "pump_on" as const, equipment: "pump", actual: data?.pump_on },
+                  { name: "Cooling Fan", description: "Fan relay", icon: "🌀", key: "fan_on" as const, equipment: "fan", actual: data?.fan_on },
+                  { name: "Grow Light", description: "Light relay", icon: "💡", key: "grow_light_on" as const, equipment: "grow_light", actual: data?.grow_light_on },
                 ]).map((device) => (
                   <article className="gm-device-card" key={device.key}>
                     <span className="gm-device-icon">{device.icon}</span>
@@ -718,21 +775,20 @@ export default function Dashboard() {
                       <strong>{device.name}</strong>
                       <small>{device.description}</small>
                       <span>ESP32 reported: {!deviceOnline || device.actual === undefined ? "UNKNOWN" : device.actual ? "ON" : "OFF"}</span>
-                      <span>Control: local ESP32 automation</span>
+                      <span>Manual relay test</span>
                     </div>
-                    <button
-                      type="button"
-                      className="gm-theme-button"
-                      disabled
-                    >
-                      LOCAL CONTROL
-                    </button>
+                    <div className="gm-device-grid">
+                      <button type="button" className="gm-theme-button" disabled={!controlAuthenticated || controlBusy || !deviceOnline} onClick={() => void sendEquipmentCommand("test", device.equipment, true)}>Test ON</button>
+                      <button type="button" className="gm-theme-button" disabled={!controlAuthenticated || controlBusy || !deviceOnline} onClick={() => void sendEquipmentCommand("test", device.equipment, false)}>Test OFF</button>
+                    </div>
                   </article>
                 ))}
               </div>
 
+              {controlMessage && <div className="gm-last-update" role="status">{controlMessage}</div>}
+
               {!deviceOnline && <div className="gm-error">ESP32 is offline. Controls are disabled until fresh telemetry is received.</div>}
-              <p className="gm-last-update">Displayed actuator states come from the latest Supabase telemetry row. The existing firmware does not accept cloud control commands.</p>
+              <p className="gm-last-update">Relay tests require the updated ESP32 firmware and an active Supabase configuration poll. Test the pump only with its water path ready. Relay state shown here updates when the ESP32 sends its next telemetry reading.</p>
             </>
           )}
         </section>

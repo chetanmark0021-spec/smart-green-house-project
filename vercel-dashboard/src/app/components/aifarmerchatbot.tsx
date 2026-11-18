@@ -145,9 +145,9 @@ export default function AIFarmerChatbot() {
         {
           role: "assistant",
           content:
-            "Sorry, I couldn't connect to the local AI model.\n\n" +
+            "Sorry, the greenhouse assistant is unavailable right now.\n\n" +
             errorMessage +
-            "\n\nPlease check that Ollama is running on your computer.",
+            "\n\nCheck the dashboard server and AI provider configuration.",
         },
       ]);
     } finally {
@@ -170,7 +170,7 @@ export default function AIFarmerChatbot() {
               <div className="gm-chat-logo">🌱</div>
               <div>
                 <strong>GreenMind</strong>
-                <span>AI Farmer Assistant · Local AI</span>
+                <span>AI Farmer Assistant · Live greenhouse data</span>
               </div>
             </div>
 
@@ -356,7 +356,7 @@ export default function AIFarmerChatbot() {
           </form>
 
           <div className="gm-chat-footer">
-            Powered by Qwen AI · Ollama Local Mode
+            GreenMind assistant · live Supabase context
           </div>
         </div>
       )}

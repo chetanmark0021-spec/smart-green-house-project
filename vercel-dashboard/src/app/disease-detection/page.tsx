@@ -3,141 +3,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import * as ort from "onnxruntime-web";
 import {
   getDiseaseCare,
   formatCareText,
 } from "./disease-care";
 import "./disease-detection.css";
 
-// Public ONNX model files hosted in the free Hugging Face Static Space.
-const MODEL_BASE_URL =
-  "https://huggingface.co/spaces/sparkfghcgj/greenmind-plant-disease-free/resolve/main";
-
-let browserModelSession: ort.InferenceSession | null = null;
-let browserModelConfig: any = null;
-let browserProcessorConfig: any = null;
-let browserModelPromise: Promise<void> | null = null;
-
-async function loadBrowserPlantModel() {
-  if (browserModelSession && browserModelConfig && browserProcessorConfig) return;
-  if (browserModelPromise) return browserModelPromise;
-
-  browserModelPromise = (async () => {
-    const [configResponse, processorResponse] = await Promise.all([
-      fetch(`${MODEL_BASE_URL}/config.json`),
-      fetch(`${MODEL_BASE_URL}/preprocessor_config.json`),
-    ]);
-
-    if (!configResponse.ok || !processorResponse.ok) {
-      throw new Error("Could not download the GreenMind model configuration from Hugging Face.");
-    }
-
-    browserModelConfig = await configResponse.json();
-    browserProcessorConfig = await processorResponse.json();
-
-    browserModelSession = await ort.InferenceSession.create(
-      `${MODEL_BASE_URL}/model.onnx`,
-      { executionProviders: ["wasm"] }
-    );
-  })();
-
-  try {
-    await browserModelPromise;
-  } catch (error) {
-    browserModelPromise = null;
-    browserModelSession = null;
-    throw error;
-  }
-}
-
-async function predictPlantDiseaseInBrowser(imageFile: File): Promise<Diagnosis> {
-  await loadBrowserPlantModel();
-
-  if (!browserModelSession || !browserModelConfig || !browserProcessorConfig) {
-    throw new Error("The GreenMind browser AI model is not ready.");
-  }
-
-  const imageUrl = URL.createObjectURL(imageFile);
-
-  try {
-    const image = new Image();
-    image.src = imageUrl;
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve();
-      image.onerror = () => reject(new Error("Could not read the selected plant image."));
-    });
-
-    const size = browserProcessorConfig.size || {};
-   // ONNX model requires exactly 224 × 224 pixels
-const width = 224;
-const height = 224;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (!context) throw new Error("Image preprocessing is unavailable in this browser.");
-    context.drawImage(image, 0, 0, width, height);
-
-    const pixels = context.getImageData(0, 0, width, height).data;
-    const planeSize = width * height;
-    const tensorData = new Float32Array(3 * planeSize);
-    const mean = browserProcessorConfig.image_mean || [0.485, 0.456, 0.406];
-    const std = browserProcessorConfig.image_std || [0.229, 0.224, 0.225];
-    const scale = browserProcessorConfig.do_rescale === false
-      ? 1
-      : Number(browserProcessorConfig.rescale_factor || 1 / 255);
-
-    for (let i = 0; i < planeSize; i++) {
-      for (let channel = 0; channel < 3; channel++) {
-        let value = pixels[i * 4 + channel] * scale;
-        if (browserProcessorConfig.do_normalize !== false) {
-          value = (value - mean[channel]) / std[channel];
-        }
-        tensorData[channel * planeSize + i] = value;
-      }
-    }
-
-    const inputName = browserModelSession.inputNames[0];
-    const outputName = browserModelSession.outputNames[0];
-    const tensor = new ort.Tensor("float32", tensorData, [1, 3, height, width]);
-    const outputs = await browserModelSession.run({ [inputName]: tensor });
-    const logits = Array.from(outputs[outputName].data as Float32Array);
-
-    const maxLogit = Math.max(...logits);
-    const exponentials = logits.map((value) => Math.exp(value - maxLogit));
-    const total = exponentials.reduce((sum, value) => sum + value, 0);
-    const probabilities = exponentials.map((value) => value / total);
-    const labels = browserModelConfig.id2label || {};
-
-    const top_predictions: Prediction[] = probabilities
-      .map((confidence, index) => ({
-        label: String(labels[String(index)] ?? labels[index] ?? `Class ${index}`),
-        confidence: confidence * 100,
-      }))
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 3);
-
-    const condition = top_predictions[0]?.label || "Unknown";
-    const crop = condition.includes("___")
-      ? condition.split("___")[0].replace(/_/g, " ")
-      : "Unknown crop";
-    const isHealthy = /healthy/i.test(condition);
-
-    return {
-      crop,
-      condition,
-      status: isHealthy ? "Healthy" : "Prediction",
-      confidence: top_predictions[0]?.confidence ?? 0,
-      message: "Prediction generated locally in your browser using GreenMind MobileNetV2.",
-      top_predictions,
-      disclaimer: "AI-assisted prediction only. Model confidence is not a confirmed disease probability. Verify uncertain results with an agricultural expert.",
-    };
-  } finally {
-    URL.revokeObjectURL(imageUrl);
-  }
-}
+const DISEASE_API_URL =
+  process.env.NEXT_PUBLIC_DISEASE_API_URL ||
+  "https://smart-greenhouse-api-fs0j.onrender.com";
 
 type Prediction = {
   label: string;
@@ -152,7 +26,39 @@ type Diagnosis = {
   message: string;
   top_predictions: Prediction[];
   disclaimer: string;
+  guidance?: {
+    severity: string;
+    headline: string;
+    summary: string;
+    actions: string[];
+    avoid: string;
+  };
 };
+
+async function predictPlantDisease(imageFile: File): Promise<Diagnosis> {
+  const form = new FormData();
+  form.append("image", imageFile);
+  const response = await fetch(`${DISEASE_API_URL.replace(/\/+$/, "")}/predict`, {
+    method: "POST",
+    body: form,
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result || typeof result.prediction !== "string") {
+    throw new Error(result?.error || `Render disease API failed (HTTP ${response.status}).`);
+  }
+  const condition = result.prediction as string;
+  const confidence = Number(result.confidence) * 100;
+  return {
+    crop: condition.includes("___") ? condition.split("___")[0].replace(/_/g, " ") : "Supported leaf",
+    condition,
+    status: /healthy/i.test(condition) ? "Healthy" : /uncertain/i.test(condition) ? "Review" : "Prediction",
+    confidence: Number.isFinite(confidence) ? confidence : 0,
+    message: "Prediction generated by the greenhouse CropGuard detector on Render.",
+    top_predictions: Array.isArray(result.top_predictions) ? result.top_predictions : [{ label: condition, confidence }],
+    disclaimer: "AI-assisted visual screening only; this is not a confirmed diagnosis. Verify uncertain results with an agricultural expert.",
+    guidance: result.guidance,
+  };
+}
 
 type HistoryItem = {
   id: number;
@@ -720,7 +626,7 @@ export default function DiseaseDetectionPage() {
         top_predictions: result.top_predictions,
         image_path: imagePath,
         original_filename: imageFile.name,
-        model_name: "PlantVillage MobileNetV2",
+        model_name: "Render CropGuard ResNet-50",
 
         // Experimental visual leaf health analysis
         health_score: visualResult?.healthScore ?? null,
@@ -764,9 +670,9 @@ export default function DiseaseDetectionPage() {
     setVisualAnalysis(null);
 
     try {
-      // Run the ONNX model locally in the visitor's browser.
-      // No FastAPI server or paid GPU endpoint is required.
-      const result = await predictPlantDiseaseInBrowser(file);
+      // Use the existing Render CropGuard detector as the single source of
+      // predictions; the richer GreenMind result cards remain in this page.
+      const result = await predictPlantDisease(file);
 
       setDiagnosis(result);
 
@@ -785,9 +691,7 @@ export default function DiseaseDetectionPage() {
         setVisualAnalysis(null);
       }
 
-      setMessage(
-        "GreenMind AI analysis completed successfully."
-      );
+      setMessage("CropGuard analysis completed successfully.");
 
       try {
         await saveDiagnosisRecord(result, file, visualResult);
@@ -1295,6 +1199,18 @@ export default function DiseaseDetectionPage() {
                 )
               )}
             </div>
+
+            {diagnosis.guidance && (
+              <div className="gm-care">
+                <h3>🌿 CropGuard growing guidance</h3>
+                <strong>{diagnosis.guidance.severity}: {diagnosis.guidance.headline}</strong>
+                <p>{diagnosis.guidance.summary}</p>
+                {diagnosis.guidance.actions.map((action, index) => (
+                  <p key={index}>• {action}</p>
+                ))}
+                <p><strong>Avoid:</strong> {diagnosis.guidance.avoid}</p>
+              </div>
+            )}
 
             {/* SYMPTOMS */}
             <div className="gm-care">

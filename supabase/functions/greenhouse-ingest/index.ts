@@ -33,7 +33,7 @@ Deno.serve(async (request) => {
     if (!deviceId) return json({ error: "deviceId is required" }, 400);
     const { data, error } = await supabase
       .from("greenhouse_devices")
-      .select("temperature_on,temperature_off,soil_moisture_on,irrigation_burst_seconds,irrigation_soak_seconds,fan_mode,pump_mode,grow_light_mode,manual_fan,manual_pump,manual_grow_light")
+      .select("temperature_on,temperature_off,soil_moisture_on,irrigation_burst_seconds,irrigation_soak_seconds,fan_mode,pump_mode,grow_light_mode,manual_fan,manual_pump,manual_grow_light,manual_control_until")
       .eq("device_id", deviceId)
       .single();
     if (error) return json({ error: error.message }, 404);
@@ -45,6 +45,9 @@ Deno.serve(async (request) => {
       irrigationSoakSeconds: data.irrigation_soak_seconds,
       modes: { fan: data.fan_mode, pump: data.pump_mode, growLight: data.grow_light_mode },
       manual: { fan: data.manual_fan, pump: data.manual_pump, growLight: data.manual_grow_light },
+      manualControlRemainingSeconds: data.manual_control_until
+        ? Math.max(0, Math.ceil((Date.parse(data.manual_control_until) - Date.now()) / 1000))
+        : 0,
     });
   }
 

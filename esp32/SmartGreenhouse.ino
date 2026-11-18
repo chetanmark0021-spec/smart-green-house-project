@@ -30,6 +30,9 @@ const char* WIFI_PASSWORD = "YOUR_FIXED_WIFI_PASSWORD";
 const char* SUPABASE_URL = "https://wclsupskijbczcwocmze.supabase.co";
 const char* SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TQFVK7KytP0H-x_3yylRjQ_8wMcWO3u";
 const char* DEVICE_ID = "greenhouse-esp32-s3-01";
+// If the Supabase Edge Function has DEVICE_INGEST_KEY configured, provide the
+// same value locally before flashing. Never commit that secret to this repo.
+const char* DEVICE_INGEST_KEY = "";
 
 // ---------- ESP32 38-pin DevKit wiring ----------
 // GPIO 34/35/36 are ADC1 input-only pins: ideal for analogue sensors while Wi-Fi runs.
@@ -67,6 +70,7 @@ constexpr bool RELAY_ACTIVE_LOW = false;
 constexpr int SOIL_DRY_RAW = 3000;
 constexpr int SOIL_WET_RAW = 1300;
 constexpr unsigned long TELEMETRY_INTERVAL_MS = 10000;
+constexpr unsigned long CLOUD_CONFIG_INTERVAL_MS = 5000;
 constexpr unsigned long LCD_PAGE_INTERVAL_MS = 3000;
 constexpr unsigned long LCD_ALERT_DURATION_MS = 4000;
 
@@ -75,6 +79,8 @@ DHT dht(DHT_PIN, DHT_TYPE);
 LiquidCrystal_I2C lcd(LCD_I2C_ADDRESS, 16, 2);
 #endif
 unsigned long lastTelemetryAt = 0;
+unsigned long lastCloudConfigAt = 0;
+unsigned long lastCloudConfigSuccessAt = 0;
 unsigned long lastLcdPageAt = 0;
 unsigned long lcdAlertUntil = 0;
 uint8_t lcdPage = 0;
@@ -266,6 +272,58 @@ void applyAutomation(float temperature, float soil, float light) {
   }
 }
 
+void pollCloudConfig() {
+  const unsigned long now = millis();
+  if (lastCloudConfigSuccessAt > 0 && now - lastCloudConfigSuccessAt > CLOUD_CONFIG_INTERVAL_MS * 6) {
+    config.pumpAuto = config.fanAuto = config.growLightAuto = true;
+    config.manualPump = config.manualFan = config.manualGrowLight = false;
+    lastCloudConfigSuccessAt = 0;
+    Serial.println("Cloud config timed out; returning actuators to local automatic mode.");
+  }
+  if (WiFi.status() != WL_CONNECTED) return;
+  if (now - lastCloudConfigAt < CLOUD_CONFIG_INTERVAL_MS) return;
+  lastCloudConfigAt = now;
+
+  WiFiClientSecure secureClient;
+  secureClient.setInsecure();
+  HTTPClient http;
+  String endpoint = String(SUPABASE_URL) + "/functions/v1/greenhouse-ingest?action=config&deviceId=" + DEVICE_ID;
+  if (!http.begin(secureClient, endpoint)) return;
+  addSupabaseHeaders(http);
+  if (DEVICE_INGEST_KEY[0] != '\0') http.addHeader("x-device-key", DEVICE_INGEST_KEY);
+  int status = http.GET();
+  if (status == HTTP_CODE_OK) {
+    StaticJsonDocument<1024> doc;
+    DeserializationError error = deserializeJson(doc, http.getString());
+    if (!error) {
+      // Only read temporary output overrides. Sensor thresholds and irrigation
+      // sequencing remain local to this firmware as before.
+      const char* fanMode = doc["modes"]["fan"] | "auto";
+      const char* pumpMode = doc["modes"]["pump"] | "auto";
+      const char* lightMode = doc["modes"]["growLight"] | "auto";
+      config.fanAuto = strcmp(fanMode, "manual") != 0;
+      config.pumpAuto = strcmp(pumpMode, "manual") != 0;
+      config.growLightAuto = strcmp(lightMode, "manual") != 0;
+      config.manualFan = doc["manual"]["fan"] | false;
+      config.manualPump = doc["manual"]["pump"] | false;
+      config.manualGrowLight = doc["manual"]["growLight"] | false;
+      const bool manualRequested = !config.fanAuto || !config.pumpAuto || !config.growLightAuto;
+      const int manualRemainingSeconds = doc["manualControlRemainingSeconds"] | 0;
+      if (manualRequested && manualRemainingSeconds <= 0) {
+        config.pumpAuto = config.fanAuto = config.growLightAuto = true;
+        config.manualPump = config.manualFan = config.manualGrowLight = false;
+      }
+      lastCloudConfigSuccessAt = now;
+    } else {
+      Serial.printf("Cloud config JSON error: %s\n", error.c_str());
+    }
+  } else {
+    Serial.printf("Cloud config status: %d\n", status);
+  }
+  http.end();
+
+}
+
 void sendTelemetry(float temperature, float humidity, float soil, float light, float battery) {
   if (WiFi.status() != WL_CONNECTED || isnan(temperature) || isnan(humidity)) return;
   StaticJsonDocument<512> doc;
@@ -309,6 +367,7 @@ void setup() {
 
 void loop() {
   connectWiFi();
+  pollCloudConfig();
   const unsigned long now = millis();
   if (now - lastTelemetryAt >= TELEMETRY_INTERVAL_MS) {
     lastTelemetryAt = now;

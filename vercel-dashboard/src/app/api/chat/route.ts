@@ -403,14 +403,10 @@ ${createGreenhousePrompt(greenhouse)}
     const message =
       error instanceof Error ? error.message : "Unknown error";
 
-    if (
-      message.includes("ECONNREFUSED") ||
-      message.includes("fetch failed")
-    ) {
+    if (message.includes("fetch failed")) {
       return NextResponse.json(
         {
-          error:
-            "Cannot connect to Ollama. Make sure Ollama is running on your computer.",
+          error: "Cannot connect to the configured GreenMind AI provider.",
         },
         { status: 503 }
       );

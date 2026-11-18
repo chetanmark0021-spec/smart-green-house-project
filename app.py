@@ -80,7 +80,7 @@ def cropguard_preprocess(image):
     return np.ascontiguousarray(crop.transpose(2, 0, 1)[None, ...], dtype=np.float32)
 
 
-def predict_disease(image):
+def predict_disease_details(image):
     logits = cropguard_model.run(["logits"], {"input": cropguard_preprocess(image)})[0][0]
     calibrated_logits = logits / CROP_GUARD_TEMPERATURE
     probabilities = np.exp(calibrated_logits - np.max(calibrated_logits))
@@ -90,9 +90,20 @@ def predict_disease(image):
 
     # Unlike the source app, no unreliable leaf-detector gate blocks a valid
     # disease prediction. A low-confidence photo is reported as uncertain.
+    top_predictions = [
+        {"label": cropguard_classes[int(index)], "confidence": float(probabilities[index])}
+        for index in np.argsort(probabilities)[::-1][:3]
+    ]
     if confidence < 0.55:
-        return "Uncertain - use a close, well-lit photo of one supported leaf", confidence
-    return cropguard_classes[class_id], confidence
+        prediction = "Uncertain - use a close, well-lit photo of one supported leaf"
+    else:
+        prediction = cropguard_classes[class_id]
+    return prediction, confidence, top_predictions
+
+
+def predict_disease(image):
+    prediction, confidence, _ = predict_disease_details(image)
+    return prediction, confidence
 
 # ─── MAIN PIPELINE ────────────────────────────────────────────────────────────
 def plant_pipeline(image):
@@ -781,7 +792,7 @@ def upload_json():
         img = np.array(img)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-        prediction, confidence = plant_pipeline(img)
+        prediction, confidence, top_predictions = predict_disease_details(img)
         annotated_image = annotated_image_data_url(img, prediction, confidence)
         # Specification: email a confident disease finding. Healthy and uncertain
         # classifications do not generate a biological-threat alert.
@@ -794,6 +805,10 @@ def upload_json():
         return jsonify({
             "prediction": prediction,
             "confidence": round(confidence, 3),
+            "top_predictions": [
+                {"label": item["label"], "confidence": round(item["confidence"] * 100, 2)}
+                for item in top_predictions
+            ],
             "annotated_image": annotated_image,
             "guidance": disease_guidance(prediction, confidence),
         })
@@ -807,11 +822,16 @@ def predict():
         img = decode_image(request)
         cv2.imwrite("latest.jpg", img)
 
-        prediction, confidence = plant_pipeline(img)
+        prediction, confidence, top_predictions = predict_disease_details(img)
 
         latest_result = {
             "prediction": prediction,
-            "confidence": round(confidence, 3)
+            "confidence": round(confidence, 3),
+            "top_predictions": [
+                {"label": item["label"], "confidence": round(item["confidence"] * 100, 2)}
+                for item in top_predictions
+            ],
+            "guidance": disease_guidance(prediction, confidence),
         }
 
         print(f"ESP32 → {prediction} ({round(confidence * 100, 1)}%)")
