@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { isGrowthSessionValid } from "@/lib/growth-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +21,6 @@ function error(message: string, status: number) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isGrowthSessionValid(request)) return error("Admin PIN session required.", 401);
   const origin = request.headers.get("origin");
   if (origin && origin !== request.nextUrl.origin) return error("Invalid request origin.", 403);
 

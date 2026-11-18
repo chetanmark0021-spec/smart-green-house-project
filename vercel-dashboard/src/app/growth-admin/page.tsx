@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import "./growth-admin.css";
 
 type Plant = {
@@ -11,9 +11,6 @@ type Plant = {
 };
 
 export default function GrowthAdminPage() {
-  const [pin, setPin] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
@@ -43,27 +40,6 @@ export default function GrowthAdminPage() {
   const [careUnit, setCareUnit] = useState("");
   const [careNotes, setCareNotes] = useState("");
 
-  // Check admin session
-  const checkSession = useCallback(async () => {
-    try {
-      const response = await fetch("/api/growth/auth", {
-        cache: "no-store",
-      });
-
-      const data = await response.json();
-      setAuthenticated(data.authenticated === true);
-    } catch {
-      setMessageType("error");
-      setMessage("Unable to check admin session. Please refresh.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    checkSession();
-  }, [checkSession]);
-
   // Load registered plants
   useEffect(() => {
     async function loadPlants() {
@@ -87,42 +63,6 @@ export default function GrowthAdminPage() {
 
     loadPlants();
   }, []);
-
-  // Admin PIN login
-  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setSubmitting(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/growth/auth", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ pin }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessageType("error");
-        setMessage(data.error || "Incorrect Admin PIN.");
-        return;
-      }
-
-      setPin("");
-      setAuthenticated(true);
-      setMessageType("success");
-      setMessage("Admin access granted successfully.");
-    } catch {
-      setMessageType("error");
-      setMessage("Unable to connect. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   // Register new plant
   async function handleAddPlant(event: React.FormEvent<HTMLFormElement>) {
@@ -333,84 +273,19 @@ export default function GrowthAdminPage() {
     }
   }
 
-  // Admin logout
-  async function handleLogout() {
-    setSubmitting(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/growth/auth", {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        setMessageType("error");
-        setMessage("Unable to end the admin session.");
-        return;
-      }
-
-      setAuthenticated(false);
-      setPin("");
-      setMessageType("success");
-      setMessage("You have been logged out.");
-    } catch {
-      setMessageType("error");
-      setMessage("Unable to connect. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (loading) {
-    return (
-      <main className="growth-admin-page">
-        <div className="admin-card">
-          <p>Checking admin session...</p>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="growth-admin-page">
       <div className="admin-card">
         <div className="admin-brand">GREENMIND</div>
         <div className="admin-icon">🌱</div>
 
-        <h1>Admin Access</h1>
+        <h1>Plant Management</h1>
 
         <p className="admin-description">
-          Secure access to GreenMind plant management.
+          Manage plant records and greenhouse care logs.
         </p>
 
-        {!authenticated ? (
-          <form onSubmit={handleLogin}>
-            <label htmlFor="admin-pin">Admin PIN</label>
-
-            <input
-              id="admin-pin"
-              type="password"
-              value={pin}
-              onChange={(event) => setPin(event.target.value)}
-              placeholder="Enter your Admin PIN"
-              autoComplete="current-password"
-              required
-            />
-
-            <button
-              type="submit"
-              className="admin-button"
-              disabled={submitting}
-            >
-              {submitting ? "Verifying..." : "Unlock Admin Access"}
-            </button>
-          </form>
-        ) : (
-          <div className="admin-management">
-
-            <div className="admin-status">
-              <span>●</span> Admin session active
-            </div>
+        <div className="admin-management">
 
             {/* Register New Plant */}
             <div className="plant-form-heading">
@@ -663,18 +538,7 @@ export default function GrowthAdminPage() {
 
             </form>
 
-            {/* Admin Logout */}
-            <button
-              type="button"
-              className="admin-button logout-button"
-              onClick={handleLogout}
-              disabled={submitting}
-            >
-              Logout
-            </button>
-
-          </div>
-        )}
+        </div>
 
         {message && (
           <p className={`admin-message ${messageType}`} role="status">

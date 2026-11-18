@@ -1,7 +1,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { isGrowthSessionValid } from "@/lib/growth-auth";
 
 export const runtime = "nodejs";
 
@@ -184,16 +183,10 @@ export async function GET() {
 }
 
 // ==========================================
-// PROTECTED API: ADD PLANTS AND RECORDS
-// Admin PIN session required.
+// API: ADD PLANTS AND RECORDS
 // ==========================================
 
 export async function POST(request: NextRequest) {
-  // Require valid Admin PIN session.
-  if (!isGrowthSessionValid(request)) {
-    return errorResponse("Admin PIN required.", 401);
-  }
-
   // Check request origin.
   const origin = request.headers.get("origin");
 

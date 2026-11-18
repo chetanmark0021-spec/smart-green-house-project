@@ -351,8 +351,7 @@ export default function DiseaseDetectionPage() {
     }
   }, []);
 
-  // CLEAR SHARED DIAGNOSIS HISTORY.
-  // Protect this operation with admin authorization before public deployment.
+  // CLEAR SHARED DIAGNOSIS HISTORY after a clear confirmation.
   async function clearDiagnosisHistory() {
     const confirmed = window.confirm(
       "Permanently delete ALL diagnosis history and saved leaf images? This action cannot be undone."

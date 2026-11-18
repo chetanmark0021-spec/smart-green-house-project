@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useGreenhouseMode } from "./components/GreenhouseModeProvider";
 
@@ -81,39 +81,8 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [now, setNow] = useState(Date.now());
-  const [adminPin, setAdminPin] = useState("");
-  const [controlAuthenticated, setControlAuthenticated] = useState(false);
   const [controlBusy, setControlBusy] = useState(false);
   const [controlMessage, setControlMessage] = useState("");
-
-  useEffect(() => {
-    void fetch("/api/growth/auth", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((result) => setControlAuthenticated(result.authenticated === true))
-      .catch(() => setControlAuthenticated(false));
-  }, []);
-
-  async function signInForEquipmentControl(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setControlBusy(true);
-    setControlMessage("");
-    try {
-      const response = await fetch("/api/growth/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: adminPin }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Admin PIN was rejected.");
-      setControlAuthenticated(true);
-      setAdminPin("");
-      setControlMessage("Test controls unlocked for this browser session.");
-    } catch (cause) {
-      setControlMessage(cause instanceof Error ? cause.message : "Admin sign-in failed.");
-    } finally {
-      setControlBusy(false);
-    }
-  }
 
   async function sendEquipmentCommand(action: "resume-auto" | "test", equipment?: string, on?: boolean) {
     setControlBusy(true);
@@ -732,36 +701,12 @@ export default function Dashboard() {
                 <button
                   type="button"
                   className="gm-theme-button"
-                  disabled={!controlAuthenticated || controlBusy || !deviceOnline}
+                  disabled={controlBusy || !deviceOnline}
                   onClick={() => void sendEquipmentCommand("resume-auto")}
                 >
                   🤖 RESUME LOCAL AUTOMATION
                 </button>
               </div>
-
-              {!controlAuthenticated && (
-                <form className="gm-panel" onSubmit={signInForEquipmentControl} style={{ marginBottom: 18 }}>
-                  <div className="gm-panel-heading">
-                    <div>
-                      <h3>Unlock relay test controls</h3>
-                      <p>Enter the greenhouse admin PIN to switch test outputs.</p>
-                    </div>
-                  </div>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    autoComplete="current-password"
-                    aria-label="Greenhouse admin PIN"
-                    value={adminPin}
-                    onChange={(event) => setAdminPin(event.target.value)}
-                    placeholder="Admin PIN"
-                    required
-                  />
-                  <button type="submit" className="gm-theme-button" disabled={controlBusy || !adminPin}>
-                    Unlock test controls
-                  </button>
-                </form>
-              )}
 
               <div className="gm-device-grid">
                 {([
@@ -778,8 +723,8 @@ export default function Dashboard() {
                       <span>Manual relay test</span>
                     </div>
                     <div className="gm-device-grid">
-                      <button type="button" className="gm-theme-button" disabled={!controlAuthenticated || controlBusy || !deviceOnline} onClick={() => void sendEquipmentCommand("test", device.equipment, true)}>Test ON</button>
-                      <button type="button" className="gm-theme-button" disabled={!controlAuthenticated || controlBusy || !deviceOnline} onClick={() => void sendEquipmentCommand("test", device.equipment, false)}>Test OFF</button>
+                      <button type="button" className="gm-theme-button" disabled={controlBusy || !deviceOnline} onClick={() => void sendEquipmentCommand("test", device.equipment, true)}>Test ON</button>
+                      <button type="button" className="gm-theme-button" disabled={controlBusy || !deviceOnline} onClick={() => void sendEquipmentCommand("test", device.equipment, false)}>Test OFF</button>
                     </div>
                   </article>
                 ))}

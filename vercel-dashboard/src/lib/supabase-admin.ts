@@ -2,20 +2,20 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey =
+const elevatedServerKey =
+  process.env.SUPABASE_SECRET_KEY ||
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   process.env.SUPABASE_PUBLISHABLE_KEY;
 
-if (!supabaseUrl || !serviceRoleKey) {
+if (!supabaseUrl || !elevatedServerKey || elevatedServerKey.startsWith("sb_publishable_")) {
   throw new Error(
-    "Missing Supabase URL or publishable key environment variables."
+    "A Supabase server secret is required. Set SUPABASE_PUBLISHABLE_KEY to an sb_secret_... value, or provide SUPABASE_SECRET_KEY."
   );
 }
 
 export const supabaseAdmin = createClient(
   supabaseUrl,
-  serviceRoleKey,
+  elevatedServerKey,
   {
     auth: {
       autoRefreshToken: false,

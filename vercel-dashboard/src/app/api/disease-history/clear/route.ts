@@ -1,42 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { isGrowthSessionValid } from "@/lib/growth-auth";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 
 export async function DELETE(request: NextRequest) {
-  if (!isGrowthSessionValid(request)) {
-    return NextResponse.json(
-      { error: "Admin sign-in is required to clear diagnosis history." },
-      { status: 401 }
-    );
+  const origin = request.headers.get("origin");
+  if (origin && origin !== request.nextUrl.origin) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json(
-        {
-          error: "Server Supabase configuration is missing.",
-        },
-        { status: 500 }
-      );
-    }
-
-    const admin = createClient(
-      supabaseUrl,
-      serviceRoleKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
-
     // Get all saved diagnosis records.
-    const { data: records, error: fetchError } = await admin
+    const { data: records, error: fetchError } = await supabaseAdmin
       .from("disease_analyses")
       .select("id, image_path");
 
@@ -50,7 +24,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete database records first.
     if (records && records.length > 0) {
-      const { error: deleteError } = await admin
+      const { error: deleteError } = await supabaseAdmin
         .from("disease_analyses")
         .delete()
         .not("id", "is", null);
@@ -64,7 +38,7 @@ export async function DELETE(request: NextRequest) {
     for (let i = 0; i < imagePaths.length; i += 100) {
       const batch = imagePaths.slice(i, i + 100);
 
-      const { error: storageError } = await admin.storage
+      const { error: storageError } = await supabaseAdmin.storage
         .from("disease-images")
         .remove(batch);
 
