@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Never forward the server-side key from SUPABASE_PUBLISHABLE_KEY here.
-  // The browser receives the separate, intentionally public publishable key.
+  // The publishable key is intended for browser use and remains in the
+  // existing SUPABASE_PUBLISHABLE_KEY Vercel variable.
   env: {
     NEXT_PUBLIC_SUPABASE_URL:
       process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       "https://wclsupskijbczcwocmze.supabase.co",
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.SUPABASE_PUBLISHABLE_KEY ||
       "sb_publishable_TQFVK7KytP0H-x_3yylRjQ_8wMcWO3u",
     NEXT_PUBLIC_DISEASE_API_URL:
       process.env.NEXT_PUBLIC_DISEASE_API_URL ||

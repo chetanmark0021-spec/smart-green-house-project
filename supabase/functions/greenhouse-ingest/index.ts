@@ -23,9 +23,17 @@ Deno.serve(async (request) => {
     return json({ error: "Unauthorized device" }, 401);
   }
 
-  const serviceRoleKey = Deno.env.get("SERVICE_ROLE_KEY");
-  if (!serviceRoleKey) return json({ error: "Server secret missing" }, 500);
-  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
+  // Supabase injects new API keys as JSON maps. Keep legacy fallbacks so this
+  // function can still run during a gradual key migration.
+  let secretKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SERVICE_ROLE_KEY");
+  try {
+    const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
+    secretKey = secretKeys.default || secretKey;
+  } catch {
+    // Use the legacy fallback above if this project has not injected new keys.
+  }
+  if (!secretKey) return json({ error: "Supabase server secret missing" }, 500);
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, secretKey);
   const url = new URL(request.url);
 
   if (request.method === "GET" && url.searchParams.get("action") === "config") {

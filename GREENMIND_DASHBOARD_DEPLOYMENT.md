@@ -11,15 +11,15 @@ The Vercel dashboard now lives in `vercel-dashboard/` as a Next.js app. Keep the
 
 ## Vercel environment variables
 
-The existing `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GREENHOUSE_DEVICE_ID`, and `DISEASE_API_URL` names remain supported. The browser uses the public `sb_publishable_...` key from the code fallback. The server reads its elevated key from `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, or the existing `SUPABASE_PUBLISHABLE_KEY` variable. If reusing that existing variable, its value must be an `sb_secret_...` key and must never be forwarded to a `NEXT_PUBLIC_` variable. Supabase publishable keys are low privilege and cannot replace a server secret.
+Keep the existing `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GREENHOUSE_DEVICE_ID`, and `DISEASE_API_URL` values as they are. The browser uses the publishable key for RLS-protected access. Add `SUPABASE_SECRET_KEY` in Vercel for server-side growth management, relay settings, and diagnosis-history deletion; never prefix it with `NEXT_PUBLIC_`.
 
 No GreenMind admin PIN or session secret is used. Plant management, relay testing, and diagnosis-history clearing APIs are public. The relay tests expire after 20 seconds. The history-clear page retains a confirmation prompt.
 
-The AI farmer chatbot uses the server-side `GEMINI_API_KEY` variable. The Vercel environment screenshot did not show this variable, so add it there if it is not already configured. It must never be included in Git or exposed to browser code. The previous local Ollama setting has been removed.
+The AI farmer chatbot uses the server-side `GEMINI_API_KEY` variable. Add it in Vercel if it is not already configured. It must never be included in Git or exposed to browser code. The previous local Ollama setting has been removed.
 
 ## Manual relay test controls
 
-The dashboard relay buttons use the server-side Supabase secret through the existing Vercel environment key. They issue 20-second manual tests; the ESP32 then returns to local automatic control. The existing `greenhouse_devices` columns already store the three manual modes and output values.
+The dashboard relay buttons use the server-side `SUPABASE_SECRET_KEY`. They issue 20-second manual tests; the ESP32 then returns to local automatic control. The existing `greenhouse_devices` columns already store the three manual modes and output values.
 
 Run `supabase/greenhouse-manual-test.sql` once in Supabase SQL Editor to add the expiration timestamp. Deploy the updated `supabase/functions/greenhouse-ingest` function, then flash the updated `esp32/SmartGreenhouse.ino` to the board. The function returns current mode and remaining test time; the firmware polls it every five seconds and falls back to local automation if its config connection is lost. If the Supabase function has `DEVICE_INGEST_KEY` set, enter the same value locally in the sketch before flashing and never commit it. No Brevo settings or alert secrets are changed.
 
