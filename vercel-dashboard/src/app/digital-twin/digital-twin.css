@@ -1,0 +1,337 @@
+
+.digital-twin-page {
+  min-height: 100vh;
+  padding: 30px;
+  color: #e8f3ec;
+  background: #081710;
+  font-family: Arial, sans-serif;
+}
+
+.twin-header,
+.twin-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.twin-brand,
+.twin-section-label {
+  color: #79c99a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.twin-header h1 {
+  margin: 8px 0;
+  font-size: clamp(26px, 4vw, 36px);
+}
+
+.twin-subtitle,
+.twin-connection p {
+  color: #a8bcaf;
+  line-height: 1.6;
+}
+
+.twin-refresh {
+  border: 1px solid #397b53;
+  border-radius: 9px;
+  padding: 12px 18px;
+  background: #174b2d;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.twin-refresh:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.twin-connection,
+.twin-section,
+.twin-system-info {
+  margin-top: 25px;
+  padding: 24px;
+  border: 1px solid #234432;
+  border-radius: 15px;
+  background: #10251a;
+}
+
+.twin-connection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.twin-connection h2 {
+  margin: 8px 0;
+  font-size: 24px;
+}
+
+.twin-connection small,
+.twin-note,
+.twin-metric small {
+  color: #9bb3a3;
+}
+
+.twin-connection-icon {
+  font-size: 42px;
+}
+
+.twin-status-live {
+  border-color: #31865a;
+}
+
+.twin-status-waiting,
+.twin-status-unknown {
+  border-color: #8a753e;
+}
+
+.twin-status-delayed,
+.twin-status-stale {
+  border-color: #9a6940;
+}
+
+.twin-error {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid #a34c4c;
+  border-radius: 9px;
+  background: #351b1b;
+  color: #ffc0c0;
+}
+
+.twin-section h2,
+.twin-system-info h2 {
+  margin: 8px 0 20px;
+  font-size: 21px;
+}
+
+.twin-model-tag {
+  padding: 7px 11px;
+  border-radius: 20px;
+  background: #1b3b29;
+  color: #a9dfb9;
+  font-size: 11px;
+}
+
+.twin-house {
+  overflow: hidden;
+  border: 1px solid #477b58;
+  border-radius: 13px;
+  background: #0a1b12;
+}
+
+.twin-roof {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 75px;
+  border-bottom: 2px solid #477b58;
+  background:
+    linear-gradient(135deg, #244d34, #112b1c);
+  color: #c5f1d2;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+
+.twin-house-content {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 20px;
+}
+
+.twin-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  min-height: 155px;
+  padding: 16px 10px;
+  border: 1px solid #345b41;
+  border-radius: 11px;
+  background: #142c1e;
+  text-align: center;
+}
+
+.twin-zone-icon {
+  font-size: 32px;
+}
+
+.twin-zone strong {
+  font-size: 13px;
+}
+
+.twin-zone small {
+  color: #9bb3a3;
+}
+
+.twin-zone-value {
+  color: #a9dfb9;
+  font-size: 12px;
+}
+
+.twin-equipment {
+  background: #192b22;
+}
+
+.twin-house-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #345b41;
+  color: #b9d8c3;
+  font-size: 13px;
+}
+
+.twin-note {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.twin-metric-grid,
+.twin-device-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.twin-metric,
+.twin-device {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 19px;
+  border: 1px solid #294b36;
+  border-radius: 12px;
+  background: #142b1e;
+}
+
+.twin-metric span,
+.twin-device span {
+  color: #b9d8c3;
+  font-size: 13px;
+}
+
+.twin-metric strong {
+  font-size: 28px;
+  color: #a7e2b8;
+}
+
+.twin-metric small {
+  font-size: 11px;
+}
+
+.twin-device-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.twin-device strong {
+  font-size: 14px;
+}
+
+.twin-device-on {
+  color: #65d995;
+}
+
+.twin-device-off {
+  color: #f1a66e;
+}
+
+.twin-device-unknown {
+  color: #b9b9a0;
+}
+
+.twin-system-info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.twin-system-info h2 {
+  grid-column: 1 / -1;
+}
+
+.twin-system-info div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 9px;
+  background: #142b1e;
+  overflow-wrap: anywhere;
+}
+
+.twin-system-info span {
+  color: #9bb3a3;
+  font-size: 12px;
+}
+
+.twin-system-info strong {
+  font-size: 14px;
+}
+
+.twin-footer {
+  margin-top: 30px;
+  padding: 20px 0;
+  color: #80c69a;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.twin-footer p {
+  color: #9bb3a3;
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+@media (max-width: 900px) {
+  .twin-house-content,
+  .twin-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .digital-twin-page {
+    padding: 16px;
+  }
+
+  .twin-header,
+  .twin-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .twin-refresh {
+    width: 100%;
+  }
+
+  .twin-connection {
+    align-items: flex-start;
+  }
+
+  .twin-house-content,
+  .twin-metric-grid,
+  .twin-device-grid,
+  .twin-system-info {
+    grid-template-columns: 1fr;
+  }
+
+  .twin-system-info h2 {
+    grid-column: auto;
+  }
+
+  .twin-house-footer {
+    flex-direction: column;
+  }
+}

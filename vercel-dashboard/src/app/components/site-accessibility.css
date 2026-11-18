@@ -1,0 +1,307 @@
+/* ==========================================
+   GREENMIND — FLOATING ACCESSIBILITY BAR
+   One-row pill dock · segmented buttons · animated edge
+   Selector: .gm-accessibility
+========================================== */
+
+@property --gm-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.gm-accessibility {
+  --a-ink: #153b2a;
+  --a-muted: #5f7a6b;
+  --a-glass: rgba(255, 255, 255, 0.84);
+  --a-line: rgba(22, 163, 74, 0.2);
+  --a-hover: rgba(22, 163, 74, 0.1);
+  --a-brand: #16a34a;
+  --a-brand-deep: #047857;
+  --a-lime: #b6f24a;
+  --a-glow: rgba(34, 197, 94, 0.38);
+  --a-danger: #dc2626;
+
+  position: fixed;
+  top: 85px;
+  right: 18px;
+  z-index: 99990;
+
+  /* a single, compact row */
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100vw - 36px);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  padding: 6px;
+  border-radius: 999px;
+  isolation: isolate;
+
+  background: var(--a-glass);
+  border: 1px solid var(--a-line);
+  box-shadow:
+    0 16px 40px rgba(15, 60, 35, 0.14),
+    0 2px 6px rgba(15, 60, 35, 0.06);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+
+  animation:
+    gmBarEnter 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    gmBarFloat 6s ease-in-out 1.2s infinite;
+}
+
+.gm-accessibility::-webkit-scrollbar { display: none; }
+
+/* orbiting gradient edge */
+.gm-accessibility::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--gm-angle),
+    transparent 0deg,
+    var(--a-brand) 60deg,
+    var(--a-lime) 120deg,
+    transparent 190deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: gmEdgeSpin 7s linear infinite;
+  pointer-events: none;
+}
+
+/* ---------- Segments (buttons) ---------- */
+
+.gm-accessibility button {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--a-ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  cursor: pointer;
+  isolation: isolate;
+  transition: color 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: gmSegmentIn 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+.gm-accessibility button:nth-child(1) { animation-delay: 0.2s; }
+.gm-accessibility button:nth-child(2) { animation-delay: 0.27s; }
+.gm-accessibility button:nth-child(3) { animation-delay: 0.34s; }
+.gm-accessibility button:nth-child(4) { animation-delay: 0.41s; }
+.gm-accessibility button:nth-child(5) { animation-delay: 0.48s; }
+.gm-accessibility button:nth-child(6) { animation-delay: 0.55s; }
+.gm-accessibility button:nth-child(n + 7) { animation-delay: 0.62s; }
+
+/* thin divider between segments */
+.gm-accessibility button + button::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 28%;
+  bottom: 28%;
+  width: 1px;
+  background: var(--a-line);
+  transition: opacity 0.2s ease;
+}
+
+/* the sliding highlight pill */
+.gm-accessibility button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--a-brand), var(--a-brand-deep));
+  box-shadow: 0 8px 20px var(--a-glow);
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.28s ease, transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+.gm-accessibility button:hover:not(:disabled),
+.gm-accessibility button:focus-visible {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.gm-accessibility button:hover:not(:disabled)::before,
+.gm-accessibility button:focus-visible::before,
+.gm-accessibility button[aria-pressed="true"]::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.gm-accessibility button[aria-pressed="true"] { color: #fff; }
+
+/* hide the divider next to a highlighted segment */
+.gm-accessibility button:hover:not(:disabled)::after,
+.gm-accessibility button:hover:not(:disabled) + button::after,
+.gm-accessibility button[aria-pressed="true"]::after {
+  opacity: 0;
+}
+
+.gm-accessibility button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.gm-accessibility button:focus-visible {
+  outline: 3px solid var(--a-glow);
+  outline-offset: 2px;
+}
+
+.gm-accessibility button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* icon (first span/emoji) nudges on hover */
+.gm-accessibility button > span:first-child {
+  display: inline-block;
+  transition: transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.gm-accessibility button:hover:not(:disabled) > span:first-child {
+  transform: scale(1.2) rotate(-8deg);
+}
+
+/* Stop = red variant */
+.gm-accessibility button:last-child,
+.gm-accessibility .gm-btn-stop {
+  color: var(--a-danger);
+}
+.gm-accessibility button:last-child::before,
+.gm-accessibility .gm-btn-stop::before {
+  background: linear-gradient(135deg, #ef4444, var(--a-danger));
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.32);
+}
+.gm-accessibility button:last-child:hover:not(:disabled),
+.gm-accessibility .gm-btn-stop:hover:not(:disabled) {
+  color: #fff;
+}
+
+/* Optional select inside the row */
+.gm-accessibility select {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--a-ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.gm-accessibility select:hover,
+.gm-accessibility select:focus-visible {
+  background: var(--a-hover);
+  outline: none;
+}
+
+/* ---------- Dark theme ---------- */
+
+html[data-theme="dark"] .gm-accessibility {
+  --a-ink: #e6f8ec;
+  --a-muted: #9db8a8;
+  --a-glass: rgba(12, 26, 19, 0.82);
+  --a-line: rgba(74, 222, 128, 0.22);
+  --a-hover: rgba(74, 222, 128, 0.12);
+  --a-brand: #22c55e;
+  --a-brand-deep: #15803d;
+  --a-glow: rgba(74, 222, 128, 0.4);
+
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .gm-accessibility button:last-child:not(:hover),
+html[data-theme="dark"] .gm-accessibility .gm-btn-stop:not(:hover) {
+  color: #ff8a8a;
+}
+
+/* ---------- Mobile: bottom dock, swipeable row ---------- */
+
+@media (max-width: 700px) {
+  .gm-accessibility {
+    top: auto;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    left: 10px;
+    right: 10px;
+    max-width: none;
+    padding: 5px;
+    scroll-snap-type: x proximity;
+    animation:
+      gmDockEnter 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both,
+      gmBarFloat 6s ease-in-out 1.2s infinite;
+  }
+
+  .gm-accessibility button {
+    scroll-snap-align: center;
+    min-height: 38px;
+    padding: 0 13px;
+    font-size: 11.5px;
+  }
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes gmBarEnter {
+  from { opacity: 0; transform: translateY(-24px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes gmDockEnter {
+  from { opacity: 0; transform: translateY(28px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes gmBarFloat {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -4px; }
+}
+
+@keyframes gmSegmentIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes gmEdgeSpin {
+  to { --gm-angle: 360deg; }
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-accessibility,
+  .gm-accessibility::before,
+  .gm-accessibility button {
+    animation: none !important;
+  }
+
+  .gm-accessibility button,
+  .gm-accessibility button::before,
+  .gm-accessibility button > span:first-child {
+    transition: none !important;
+  }
+}

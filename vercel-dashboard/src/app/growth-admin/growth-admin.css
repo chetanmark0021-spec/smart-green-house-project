@@ -1,0 +1,262 @@
+
+.growth-admin-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #07110d;
+  color: #f3f7f4;
+}
+
+.admin-card {
+  width: 100%;
+  max-width: 430px;
+  padding: 36px;
+  border: 1px solid #203d2c;
+  border-radius: 20px;
+  background: #101d16;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.admin-brand {
+  color: #70d890;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+
+.admin-icon {
+  margin-top: 24px;
+  font-size: 42px;
+}
+
+.admin-card h1 {
+  margin: 12px 0 8px;
+  font-size: 28px;
+  font-weight: 750;
+}
+
+.admin-description {
+  margin-bottom: 28px;
+  color: #a6b8ac;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.admin-card form {
+  text-align: left;
+}
+
+.admin-card label {
+  display: block;
+  margin-bottom: 9px;
+  color: #dce9df;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-card input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #345340;
+  border-radius: 10px;
+  outline: none;
+  background: #09130d;
+  color: white;
+  font-size: 15px;
+}
+
+.admin-card input:focus {
+  border-color: #70d890;
+  box-shadow: 0 0 0 3px rgba(112, 216, 144, 0.12);
+}
+
+.admin-button {
+  width: 100%;
+  margin-top: 18px;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: #58c77c;
+  color: #06120a;
+  font-size: 15px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.admin-button:hover {
+  background: #72dc94;
+}
+
+.admin-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.admin-success {
+  padding: 18px;
+  border: 1px solid #285c3a;
+  border-radius: 12px;
+  background: #10271a;
+}
+
+.admin-status {
+  color: #79e39a;
+  font-weight: 750;
+}
+
+.admin-success p {
+  color: #c1d3c6;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.logout-button {
+  background: #294535;
+  color: white;
+}
+
+.admin-message {
+  margin-top: 18px;
+  color: #8de4a5;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dashboard-link {
+  display: inline-block;
+  margin-top: 26px;
+  color: #85d99c;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.dashboard-link:hover {
+  text-decoration: underline;
+}
+
+.admin-footer {
+  margin-top: 30px;
+  color: #718579;
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .admin-card {
+    padding: 26px 20px;
+  }
+}
+
+.admin-management {
+  margin-top: 22px;
+  text-align: left;
+}
+
+.admin-status {
+  padding: 12px;
+  border: 1px solid #285c3a;
+  border-radius: 10px;
+  background: #10271a;
+  color: #79e39a;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.plant-form-heading {
+  margin: 26px 0 20px;
+}
+
+.plant-form-heading h2 {
+  margin-bottom: 7px;
+  color: #f3f7f4;
+  font-size: 21px;
+  font-weight: 750;
+}
+
+.plant-form-heading p {
+  color: #a6b8ac;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.plant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plant-form label {
+  margin-top: 8px;
+  color: #dce9df;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.plant-form input {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #345340;
+  border-radius: 9px;
+  background: #09130d;
+  color: white;
+  font-size: 14px;
+}
+
+.plant-form input:focus {
+  border-color: #70d890;
+  outline: none;
+}
+
+.plant-form input[type="date"] {
+  color-scheme: dark;
+}
+
+.admin-message.success {
+  color: #8de4a5;
+}
+
+.admin-message.error {
+  color: #ff9999;
+}
+.plant-form select,
+.plant-form textarea {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #345340;
+  border-radius: 9px;
+  background: #09130d;
+  color: white;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.plant-form select:focus,
+.plant-form textarea:focus {
+  border-color: #70d890;
+  outline: none;
+}
+
+.plant-form textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.growth-heading {
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid #294535;
+}
+/* Plant Care Form */
+
+.plant-form input::placeholder,
+.plant-form textarea::placeholder {
+  color: #718579;
+}
+
+.plant-form select option {
+  background: #101d16;
+  color: white;
+}

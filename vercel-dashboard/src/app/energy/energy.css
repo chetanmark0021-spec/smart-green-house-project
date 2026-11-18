@@ -1,0 +1,282 @@
+
+.energy-page {
+  min-height: 100vh;
+  padding: 35px 20px;
+  background: #09130f;
+  color: #e8f2eb;
+}
+
+.energy-container {
+  max-width: 1250px;
+  margin: auto;
+}
+
+.energy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+}
+
+.energy-brand {
+  color: #72d99b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.energy-header h1 {
+  font-size: clamp(25px, 4vw, 34px);
+  margin: 10px 0;
+}
+
+.energy-header p,
+.energy-section > p {
+  color: #9eb5a6;
+}
+
+.energy-refresh {
+  padding: 12px 18px;
+  border: 1px solid #287a4b;
+  border-radius: 9px;
+  background: #164d30;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.energy-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.energy-section,
+.energy-connection {
+  background: #112019;
+  border: 1px solid #263d30;
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 22px;
+}
+
+.energy-connection-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.energy-section h2,
+.energy-connection h2 {
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+
+.energy-connection > p {
+  margin: 20px 0 12px;
+  font-weight: 600;
+}
+
+.energy-connection small {
+  display: block;
+  color: #91a99a;
+  margin-top: 7px;
+}
+
+.energy-status {
+  padding: 7px 13px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.energy-live {
+  background: #164d30;
+  color: #83efad;
+}
+
+.energy-stale {
+  background: #594019;
+  color: #ffd27b;
+}
+
+.energy-waiting {
+  background: #34413a;
+  color: #c5d2c9;
+}
+
+.energy-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.energy-card {
+  background: #192c21;
+  border: 1px solid #304b39;
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 0;
+}
+
+.energy-card > span {
+  font-size: 26px;
+}
+
+.energy-card p {
+  color: #a6bcae;
+  font-size: 14px;
+}
+
+.energy-card h3 {
+  font-size: 25px;
+  overflow-wrap: anywhere;
+  margin: 12px 0;
+}
+
+.energy-card small {
+  color: #91a99a;
+}
+
+.energy-analysis {
+  margin-top: 20px;
+  padding: 22px;
+  background: #192c21;
+  border: 1px solid #304b39;
+  border-radius: 12px;
+}
+
+.energy-analysis h3 {
+  font-size: 15px;
+  color: #a6bcae;
+}
+
+.energy-large {
+  display: block;
+  margin: 12px 0;
+  font-size: 28px;
+  color: #80e5a6;
+}
+
+.energy-analysis p {
+  color: #9eb5a6;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.energy-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.energy-status-grid > div {
+  background: #192c21;
+  border: 1px solid #304b39;
+  border-radius: 10px;
+  padding: 18px;
+  min-width: 0;
+}
+
+.energy-status-grid span {
+  font-size: 24px;
+}
+
+.energy-status-grid p {
+  color: #9eb5a6;
+}
+
+.energy-status-grid strong {
+  overflow-wrap: anywhere;
+}
+
+.energy-table-wrapper {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.energy-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+}
+
+.energy-table th,
+.energy-table td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid #304438;
+  font-size: 13px;
+}
+
+.energy-table th {
+  color: #80dfa2;
+  background: #192c21;
+}
+
+.energy-table td {
+  color: #c5d6ca;
+}
+
+.energy-empty {
+  text-align: center !important;
+  padding: 30px !important;
+  color: #9eb5a6 !important;
+}
+
+.energy-error {
+  padding: 15px;
+  margin-bottom: 20px;
+  background: #472323;
+  border: 1px solid #824242;
+  border-radius: 9px;
+  color: #ffc1c1;
+}
+
+.energy-footer {
+  padding: 25px 10px;
+  text-align: center;
+  color: #75d99a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.energy-footer p {
+  color: #91a99a;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .energy-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 550px) {
+  .energy-page {
+    padding: 22px 12px;
+  }
+
+  .energy-section,
+  .energy-connection {
+    padding: 16px;
+  }
+
+  .energy-grid,
+  .energy-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .energy-refresh {
+    width: 100%;
+  }
+}

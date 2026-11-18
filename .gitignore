@@ -17,4 +17,7 @@ uploads/images*.jfif
 
 # Deployment/tooling state
 .vercel/
+node_modules/
+vercel-dashboard/.next/
+vercel-dashboard/out/
 supabase/.temp/

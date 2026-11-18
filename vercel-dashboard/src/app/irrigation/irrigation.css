@@ -1,0 +1,552 @@
+.irrigation-page {
+  min-height: 100vh;
+  padding: 32px 20px;
+  background: #f5f8f5;
+  color: #172b20;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.irrigation-container {
+  width: 100%;
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
+.irrigation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.irrigation-eyebrow {
+  margin: 0 0 10px;
+  color: #26834b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.irrigation-header h1 {
+  margin: 0;
+  color: #173b26;
+  font-size: clamp(25px, 4vw, 36px);
+  font-weight: 800;
+}
+
+.irrigation-subtitle {
+  margin: 10px 0 0;
+  color: #718078;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.irrigation-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  flex-shrink: 0;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 9px;
+  background: #21834a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.irrigation-refresh:hover {
+  background: #176b3a;
+}
+
+.irrigation-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.irrigation-refresh span {
+  font-size: 18px;
+}
+
+.irrigation-connection {
+  padding: 22px;
+  margin-bottom: 30px;
+  border: 1px solid #dce9df;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.connection-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.connection-title {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.connection-title h2 {
+  margin: 0;
+  color: #233b2b;
+  font-size: 16px;
+}
+
+.connection-title p {
+  margin: 5px 0 0;
+  color: #78867d;
+  font-size: 13px;
+}
+
+.connection-dot {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.dot-live {
+  background: #20a45a;
+  box-shadow: 0 0 0 4px #e0f5e8;
+}
+
+.dot-offline {
+  background: #d79a34;
+  box-shadow: 0 0 0 4px #fff3df;
+}
+
+.connection-badge {
+  padding: 6px 11px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+}
+
+.badge-live {
+  background: #e3f6e9;
+  color: #16813e;
+}
+
+.badge-stale {
+  background: #fff0d8;
+  color: #a96908;
+}
+
+.badge-offline {
+  background: #f1f2ef;
+  color: #70786f;
+}
+
+.connection-message {
+  margin: 17px 0;
+  color: #65746a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.connection-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 13px;
+  border-top: 1px solid #edf1ed;
+  color: #89938c;
+  font-size: 11px;
+}
+
+.irrigation-section {
+  margin-bottom: 30px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  color: #213c2b;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.section-heading p {
+  margin: 6px 0 0;
+  color: #829087;
+  font-size: 12px;
+}
+
+.irrigation-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.irrigation-metric-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #e6ede7;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(26, 66, 39, 0.035);
+}
+
+.metric-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 16px;
+  border-radius: 11px;
+  font-size: 20px;
+}
+
+.moisture-icon {
+  background: #e5f3ff;
+}
+
+.temperature-icon {
+  background: #fff0e7;
+}
+
+.humidity-icon {
+  background: #e9f1ff;
+}
+
+.light-icon {
+  background: #fff7dc;
+}
+
+.metric-label {
+  margin: 0;
+  color: #7b8980;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.irrigation-metric-card h3 {
+  margin: 9px 0 5px;
+  color: #1e3e29;
+  font-size: 29px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.metric-description {
+  margin: 0;
+  color: #a0aaa2;
+  font-size: 11px;
+}
+
+.moisture-panel {
+  padding: 23px;
+  border: 1px solid #e4ece5;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.moisture-panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.moisture-panel-top h3 {
+  margin: 7px 0 0;
+  color: #1e5633;
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.moisture-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #e6f3ff;
+  font-size: 25px;
+}
+
+.moisture-progress-track {
+  width: 100%;
+  height: 13px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #edf1ed;
+}
+
+.moisture-progress-fill {
+  height: 100%;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #43b66c, #16874a);
+  transition: width 0.4s ease;
+}
+
+.moisture-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  color: #87938a;
+  font-size: 11px;
+}
+
+.moisture-note {
+  margin: 19px 0 0;
+  color: #8a968e;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.advisory-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 21px;
+  border: 1px solid;
+  border-radius: 13px;
+}
+
+.advisory-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.advisory-card h3 {
+  margin: 2px 0 7px;
+  font-size: 15px;
+}
+
+.advisory-card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.advisory-warning {
+  margin: 12px 0 0;
+  color: #a36b18;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.advisory-neutral {
+  border-color: #dce6e0;
+  background: #f2f6f3;
+  color: #53645a;
+}
+
+.advisory-warning {
+  border-color: #f0d9a9;
+  background: #fff8e9;
+  color: #8b5b12;
+}
+
+.advisory-caution {
+  border-color: #f0dfbd;
+  background: #fffaf0;
+  color: #86601f;
+}
+
+.advisory-good {
+  border-color: #ccebd6;
+  background: #effaf2;
+  color: #246b3b;
+}
+
+.system-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.system-status-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e6ede7;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.status-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: #f0f5f0;
+  font-size: 20px;
+}
+
+.system-status-card p {
+  margin: 0 0 6px;
+  color: #849087;
+  font-size: 11px;
+}
+
+.system-status-card strong {
+  display: block;
+  color: #304a37;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.system-status-card .reading-time {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.history-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e4ece5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.irrigation-history-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.irrigation-history-table th {
+  padding: 15px 17px;
+  background: #f0f6f1;
+  color: #52665a;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.irrigation-history-table td {
+  padding: 15px 17px;
+  border-top: 1px solid #edf1ed;
+  color: #637168;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.irrigation-history-table tbody tr:hover {
+  background: #f9fbf9;
+}
+
+.irrigation-history-table .history-empty {
+  padding: 30px 17px;
+  color: #89958c;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.7;
+}
+
+.irrigation-footer {
+  padding: 20px 0 5px;
+  border-top: 1px solid #e2eae3;
+  text-align: center;
+}
+
+.irrigation-footer p {
+  margin: 5px 0;
+  color: #929d94;
+  font-size: 10px;
+}
+
+.irrigation-footer p:first-child {
+  color: #4b7658;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 900px) {
+  .irrigation-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .irrigation-page {
+    padding: 22px 13px;
+  }
+
+  .irrigation-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .irrigation-refresh {
+    width: 100%;
+  }
+
+  .irrigation-connection {
+    padding: 17px;
+  }
+
+  .connection-heading {
+    align-items: flex-start;
+  }
+
+  .connection-title h2 {
+    font-size: 14px;
+  }
+
+  .connection-footer {
+    flex-direction: column;
+  }
+
+  .irrigation-metric-grid {
+    gap: 10px;
+  }
+
+  .irrigation-metric-card {
+    padding: 15px;
+  }
+
+  .irrigation-metric-card h3 {
+    font-size: 24px;
+  }
+
+  .system-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading h2 {
+    font-size: 17px;
+  }
+
+  .moisture-panel {
+    padding: 17px;
+  }
+
+  .advisory-card {
+    padding: 16px;
+  }
+}
