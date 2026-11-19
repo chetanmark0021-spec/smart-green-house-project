@@ -6,7 +6,10 @@ const elevatedServerKey =
   process.env.SUPABASE_SECRET_KEY ||
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-type SupabaseAdminClient = ReturnType<typeof createClient>;
+// Instantiating the generic matters here: ReturnType<typeof createClient>
+// resolves its schema parameter to `never`, which makes every table query
+// unusable from TypeScript when this client is exported through the proxy.
+type SupabaseAdminClient = ReturnType<typeof createClient<any>>;
 
 let client: SupabaseAdminClient | null = null;
 
